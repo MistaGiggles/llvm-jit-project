@@ -1,0 +1,147 @@
+D/dalvikvm( 1747): MGD LLVM TRACE HEAD runCalculateSubtract : Ljp/kentarokodama/elementbenchmark/model/HelperJavaCalculateInteger; : HelperJavaCalculateInteger.java
+D/dalvikvm( 1747): MGD REGDATA DUMP: 
+D/dalvikvm( 1747): MGD REGDATA 0 : AE
+D/dalvikvm( 1747): MGD REGDATA 1 : 2
+D/dalvikvm( 1747): MGD REGDATA 2 : 80
+D/dalvikvm( 1747): MGD REGDATA 3 : 4
+D/dalvikvm( 1747): MGD REGDATA 4 : 9
+D/dalvikvm( 1747): MGD REGDATA 5 : A
+D/dalvikvm( 1747): MGD REGDATA 6 : 9
+D/dalvikvm( 1747): MGD REGDATA 7 : 9
+D/dalvikvm( 1747): MGD REGDATA 8 : A
+D/dalvikvm( 1747): MGD REGDATA 9 : 9
+D/dalvikvm( 1747): MGD REGDATA 10 : 9
+D/dalvikvm( 1747): MGD REGDATA 11 : A
+D/dalvikvm( 1747): MGD REGDATA 12 : 9
+D/dalvikvm( 1747): MGD REGDATA 13 : 9
+D/dalvikvm( 1747): MGD REGDATA 14 : A
+D/dalvikvm( 1747): MGD REGDATA 15 : 9
+D/dalvikvm( 1747): MGD REGDATA 16 : 9
+D/dalvikvm( 1747): MGD REGDATA 17 : A
+D/dalvikvm( 1747): MGD REGDATA 18 : 9
+D/dalvikvm( 1747): MGD REGDATA 19 : 9
+D/dalvikvm( 1747): MGD REGDATA 20 : A
+D/dalvikvm( 1747): MGD REGDATA 21 : 9
+D/dalvikvm( 1747): MGD REGDATA 22 : 9
+D/dalvikvm( 1747): MGD REGDATA 23 : A
+D/dalvikvm( 1747): MGD REGDATA 24 : 9
+D/dalvikvm( 1747): MGD REGDATA 25 : 9
+D/dalvikvm( 1747): MGD REGDATA 26 : A
+D/dalvikvm( 1747): MGD REGDATA 27 : 9
+D/dalvikvm( 1747): MGD REGDATA 28 : 9
+D/dalvikvm( 1747): MGD REGDATA 29 : A
+D/dalvikvm( 1747): MGD REGDATA 30 : 9
+D/dalvikvm( 1747): MGD REGDATA 31 : 9
+D/dalvikvm( 1747): MGD REGDATA 32 : A
+D/dalvikvm( 1747): MGD REGDATA 33 : 9
+D/dalvikvm( 1747): MGD REGDATA 34 : 9
+D/dalvikvm( 1747): MGD REGDATA 35 : A
+D/dalvikvm( 1747): MGD REGDATA 36 : 9
+D/dalvikvm( 1747): MGD REGDATA 37 : 9
+D/dalvikvm( 1747): MGD REGDATA 38 : A
+D/dalvikvm( 1747): MGD REGDATA 39 : 9
+D/dalvikvm( 1747): MGD REGDATA 40 : 9
+D/dalvikvm( 1747): MGD REGDATA 41 : A
+D/dalvikvm( 1747): MGD REGDATA 42 : 9
+D/dalvikvm( 1747): MGD REGDATA 43 : 9
+D/dalvikvm( 1747): MGD REGDATA 44 : A
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 20
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1B0
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 340
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 24
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1B4
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 344
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 28
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1B8
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 348
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 2C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1BC
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 34C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 30
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1C0
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 350
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 34
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1C4
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 354
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 38
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1C8
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 358
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 3C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1CC
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 35C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 40
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1D0
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 360
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 44
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1D4
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 364
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 48
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1D8
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 368
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 4C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1DC
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 36C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 50
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1E0
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 370
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 54
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1E4
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 374
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 58
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1E8
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 378
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 5C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1EC
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 37C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 60
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1F0
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 380
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 64
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1F4
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 384
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 68
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1F8
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 388
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 6C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 1FC
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 38C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 70
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 200
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 390
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 74
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 204
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 394
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 78
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 208
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 398
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 7C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 20C
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 39C
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 0 2 80
+D/dalvikvm( 1747): MGD LLVM TRACE : F2, 1 2 210
+D/dalvikvm( 1747): MGD LLVM TRACE : B1, 0 1 0
+D/dalvikvm( 1747): MGD LLVM TRACE : F5, 0 2 3A0

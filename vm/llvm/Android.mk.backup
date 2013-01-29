@@ -1,0 +1,387 @@
+LLVM_PATH:= $(call my-dir)
+LOCAL_PATH:= $(LLVM_PATH)
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_SRC_FILES := libLLVMBitReader.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-bitwriter
+LOCAL_SRC_FILES := libLLVMBitWriter.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-codegen
+LOCAL_SRC_FILES := libLLVMCodeGen.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-core
+LOCAL_SRC_FILES := libLLVMCore.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-executionengine
+LOCAL_SRC_FILES := libLLVMExecutionEngine.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-interpreter
+LOCAL_SRC_FILES := libLLVMInterpreter.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-arminfo
+LOCAL_SRC_FILES := libLLVMARMInfo.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-jit
+LOCAL_SRC_FILES := libLLVMJIT.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+### ================================
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-analysis
+LOCAL_SRC_FILES := libLLVMAnalysis.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-transformutils
+LOCAL_SRC_FILES := libLLVMTransformUtils.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### ================================
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-object
+LOCAL_SRC_FILES := libLLVMObject.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+### ================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-scalaropts
+LOCAL_SRC_FILES := libLLVMScalarOpts.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+### =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-mcdiss
+LOCAL_SRC_FILES := libLLVMMCDisassembler.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-mcjit
+LOCAL_SRC_FILES := libLLVMMCJIT.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-libc
+LOCAL_SRC_FILES := libc_common.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-mcparser
+LOCAL_SRC_FILES := libLLVMMCParser.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-archive
+LOCAL_SRC_FILES := libLLVMArchive.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-runtimedy
+LOCAL_SRC_FILES := libLLVMRuntimeDyld.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-armasmparser
+LOCAL_SRC_FILES := libLLVMARMAsmParser.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-instcomb
+LOCAL_SRC_FILES := libLLVMInstCombine.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-instrumentation
+LOCAL_SRC_FILES := libLLVMInstrumentation.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-selectiondag
+LOCAL_SRC_FILES := libLLVMSelectionDAG.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-armcodegen
+LOCAL_SRC_FILES := libLLVMARMCodeGen.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-support
+LOCAL_SRC_FILES := libLLVMSupport.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-armdesc
+LOCAL_SRC_FILES := libLLVMARMDesc.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-ipa
+LOCAL_SRC_FILES := libLLVMipa.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-target
+LOCAL_SRC_FILES := libLLVMTarget.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-armdiss
+LOCAL_SRC_FILES := libLLVMARMDisassembler.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-ipo
+LOCAL_SRC_FILES := libLLVMipo.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-vector
+LOCAL_SRC_FILES := libLLVMVectorize.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-asmparser
+LOCAL_SRC_FILES := libLLVMAsmParser.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+#LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-linker
+LOCAL_SRC_FILES := libLLVMLinker.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-asmprinter
+LOCAL_SRC_FILES := libLLVMAsmPrinter.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-armasmprinter
+LOCAL_SRC_FILES := libLLVMARMAsmPrinter.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================
+
+
+# include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := llvm-mc
+LOCAL_SRC_FILES := libLLVMMC.a
+LOCAL_EXPORT_C_INCLUDES :=include/
+#LOCAL_LDLIBS := -L$(LLVM_PATH)/lib -llog -g -lstdc++
+include $(PREBUILT_STATIC_LIBRARY)
+
+### =================================

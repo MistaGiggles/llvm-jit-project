@@ -1,0 +1,283 @@
+LLVM_PATH:= $(call my-dir)
+LOCAL_PATH:= $(LLVM_PATH)
+
+# ====================================
+LOCAL_MODULE :=  libc_common
+LOCAL_SRC_FILES :=  libc_common.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMAnalysis
+LOCAL_SRC_FILES :=  libLLVMAnalysis.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMArchive
+LOCAL_SRC_FILES :=  libLLVMArchive.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMARMAsmParser
+LOCAL_SRC_FILES :=  libLLVMARMAsmParser.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMARMAsmPrinter
+LOCAL_SRC_FILES :=  libLLVMARMAsmPrinter.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMARMCodeGen
+LOCAL_SRC_FILES :=  libLLVMARMCodeGen.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMARMDesc
+LOCAL_SRC_FILES :=  libLLVMARMDesc.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMARMDisassembler
+LOCAL_SRC_FILES :=  libLLVMARMDisassembler.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMARMInfo
+LOCAL_SRC_FILES :=  libLLVMARMInfo.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMAsmParser
+LOCAL_SRC_FILES :=  libLLVMAsmParser.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMAsmPrinter
+LOCAL_SRC_FILES :=  libLLVMAsmPrinter.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMBitReader
+LOCAL_SRC_FILES :=  libLLVMBitReader.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMBitWriter
+LOCAL_SRC_FILES :=  libLLVMBitWriter.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMCodeGen
+LOCAL_SRC_FILES :=  libLLVMCodeGen.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMCore
+LOCAL_SRC_FILES :=  libLLVMCore.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMExecutionEngine
+LOCAL_SRC_FILES :=  libLLVMExecutionEngine.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMInstCombine
+LOCAL_SRC_FILES :=  libLLVMInstCombine.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMInstrumentation
+LOCAL_SRC_FILES :=  libLLVMInstrumentation.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMInterpreter
+LOCAL_SRC_FILES :=  libLLVMInterpreter.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMipa
+LOCAL_SRC_FILES :=  libLLVMipa.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMipo
+LOCAL_SRC_FILES :=  libLLVMipo.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMJIT
+LOCAL_SRC_FILES :=  libLLVMJIT.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMLinker
+LOCAL_SRC_FILES :=  libLLVMLinker.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMMC
+LOCAL_SRC_FILES :=  libLLVMMC.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMMCDisassembler
+LOCAL_SRC_FILES :=  libLLVMMCDisassembler.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMMCJIT
+LOCAL_SRC_FILES :=  libLLVMMCJIT.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMMCParser
+LOCAL_SRC_FILES :=  libLLVMMCParser.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMObject
+LOCAL_SRC_FILES :=  libLLVMObject.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMRuntimeDyld
+LOCAL_SRC_FILES :=  libLLVMRuntimeDyld.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMScalarOpts
+LOCAL_SRC_FILES :=  libLLVMScalarOpts.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMSelectionDAG
+LOCAL_SRC_FILES :=  libLLVMSelectionDAG.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMSupport
+LOCAL_SRC_FILES :=  libLLVMSupport.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMTarget
+LOCAL_SRC_FILES :=  libLLVMTarget.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMTransformUtils
+LOCAL_SRC_FILES :=  libLLVMTransformUtils.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
+# ====================================
+LOCAL_MODULE :=  libLLVMVectorize
+LOCAL_SRC_FILES :=  libLLVMVectorize.a
+LOCAL_EXPORT_C_INCLUDES := include/
+include $(PREBUILT_STATIC_LIBRARY)
+# ====================================
+
+
