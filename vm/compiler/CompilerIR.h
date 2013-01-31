@@ -299,4 +299,5 @@ void dvmCompilerAbort(CompilationUnit *cUnit);
 /* Debug Utilities */
 void dvmCompilerDumpCompilationUnit(CompilationUnit *cUnit);
 
+
 #endif  // DALVIK_VM_COMPILER_IR_H_

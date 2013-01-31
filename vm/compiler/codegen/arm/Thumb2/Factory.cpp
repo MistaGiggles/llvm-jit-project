@@ -1265,3 +1265,4 @@ static void genSelfVerificationPostBranch(CompilationUnit *cUnit,
     dvmCompilerInsertLIRAfter((LIR *) origLIR, (LIR *) pop);
 }
 #endif
+

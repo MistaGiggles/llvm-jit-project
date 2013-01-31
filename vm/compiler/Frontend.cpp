@@ -22,6 +22,7 @@
 #include "interp/Jit.h"
 #include "CompilerInternals.h"
 #include "Dataflow.h"
+ //#include "compiler/codegen/arm/ArmLIR.h"
 
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
@@ -1672,23 +1673,28 @@ void runOtherTest()
     u1* regs;
     __asm(
 
-        "mov %[regs], r1\n\t"
+        "mov %[regs], r0\n\t"
         :[regs] "=r" (regs)
         :
-        :"r1"
+        :"r0"
     );
     ALOGD("MGD EXECUTED OTHER FUNCTION: %X", regs[0]);
     
-    __asm(
-
-        "bx r0\n\t"
-        :::);
     return;
 }
 
+//extern  ArmLIR *loadConstant(CompilationUnit*, int, int);
+//extern  ArmLIR *opReg(CompilationUnit*, OpKind, int);
+/*void buildStubTrace(CompilationUnit* cUnit, void** func)
+{
+    loadConstant(cUnit, 0, (int) *func);
+    opReg(cUnit,kOpBlx,0 );
+}*/
 
 
 int traceprint = 10000;
+
+
 
 bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr,

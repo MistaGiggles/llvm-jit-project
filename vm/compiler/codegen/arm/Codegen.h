@@ -63,3 +63,7 @@ extern void dvmCompilerSetupResourceMasks(ArmLIR *lir);
 
 extern ArmLIR* dvmCompilerRegCopyNoInsert(CompilationUnit *cUnit, int rDest,
                                           int rSrc);
+
+//void dvmBuildStubTrace(void* functionPointer);
+
+void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* name);

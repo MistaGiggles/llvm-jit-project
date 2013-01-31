@@ -205,7 +205,7 @@ bool dvmCompileTrace(JitTraceDescription *trace, int numMaxInsts,
 bool dvmLLVMCompileTrace(JitTraceDescription *trace, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr, int optHints);
 
-
+void runOtherTest();
 
 
 /* End of my Stuff */
