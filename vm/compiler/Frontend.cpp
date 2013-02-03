@@ -1683,6 +1683,20 @@ void runOtherTest()
     return;
 }
 
+void* hardcodeAdd(void* rgs)
+{
+    u1* regs;
+    __asm(
+
+        "mov %[regs], r0\n\t"
+        :[regs] "=r" (regs)
+        :
+        :"r0"
+    );
+    //int* regs = (int*) registers;
+    regs[2] = regs[4] + regs[1];
+    return NULL;
+}
 //extern  ArmLIR *loadConstant(CompilationUnit*, int, int);
 //extern  ArmLIR *opReg(CompilationUnit*, OpKind, int);
 /*void buildStubTrace(CompilationUnit* cUnit, void** func)
@@ -1703,10 +1717,10 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
     //if(JitIsHere()){
             //ALOGD("LLVM - Entered my own JIT function");
-    if(strcmp(desc->method->name, "runCalculateAdd")!=0) {return false;}
-    info->codeAddress =(void*) (*runOtherTest);
-    ALOGD("MGD RETURNING STUFF");
-    return true;
+    if(strcmp(desc->method->name, "addTwo")!=0) {return false;}
+    //info->codeAddress =(void*) (*runOtherTest);
+    //ALOGD("MGD RETURNING STUFF");
+    //return true;
     if(1 > 0) // traceprint
         ALOGD("MGD LLVM TRACE HEAD %s : %s : %s", desc->method->name, desc->method->clazz->descriptor, desc->method->clazz->sourceFile);
     ALOGD("MGD REGDATA DUMP: entry numbers: %d %d, FP: %X", desc->method->registerMap->numEntries[0], desc->method->registerMap->numEntries[1], *desc->method->insns);

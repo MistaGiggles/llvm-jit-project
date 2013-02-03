@@ -4597,7 +4597,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
 
 
     std::string appName1 = "jp.kentarokodama.elementbenchmark.jitonroot";
-    std::string appName2 = "jp.kentarokodama.elementbenchmark.jitoffNOPE";
+    std::string appName2 = "com.mistagiggles.llvm.bench";
     std::string appName3 = "jp.kentarokodama.elementbenchmark.jiton";
 
     // Get our PID
@@ -4653,13 +4653,25 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
         case kWorkOrderTraceLLVM: {
             desc = (JitTraceDescription *)work->info;
             success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
-            CompilationUnit* stub = new CompilationUnit;
-            buildStubTrace(stub, (void*) runOtherTest);
+            CompilationUnit stub;
+            memset(&stub, 0, sizeof(stub));
+            setupStubUnit(&stub);
+            stub.bailPtr = work->bailPtr;
+            stub.printMe = true;
+            stub.method = desc->method;
+            stub.traceDesc = desc;
+            ALOGD("Attempting to compile stub trace");
+            loadConstant(&stub, 3, 5);//(int) (*func));
+           
+            //buildStubTrace(stub, &hardcodeAdd);
 
             //dvmCompilerAssembleLIR(&stub, info);
             //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
             //                            work->bailPtr, 0 /* no hints */);
-            isCompile = true;
+            isCompile = false;
+            success = false;
+            ALOGD("Done stub trace");
+
             break;
         }
 
@@ -4789,10 +4801,21 @@ void dvmCompilerFlushRegWideImpl(CompilationUnit *cUnit, int rBase,
     blx r1
         <func>
 */
-void buildStubTrace(CompilationUnit* cUnit, void* func)
+void setupStubUnit(CompilationUnit* cUnit)
 {
-    loadConstant(cUnit, 1, (int) func);
-    opReg(cUnit,kOpBlx,1 );
+    cUnit->profileCodeSize = 0;
+    cUnit->instructionSet = DALVIK_JIT_THUMB2;
+    //cUnit->jitMode = kJitTrace;
+
+}
+
+void buildStubTrace(CompilationUnit* cUnit)
+{
+    setupStubUnit(cUnit);
+    ALOGD("MGD loadConstant");
+    loadConstant(cUnit, 3, 5);//(int) (*func));
+    ALOGD("MGD opREG BLX");
+    opReg(cUnit,kOpBlx,3 );
 
 }
 

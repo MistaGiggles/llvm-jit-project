@@ -71,6 +71,10 @@ int dvmCompilerTargetOptHint(int key);
 /* Implemented in codegen/<target>/<target_variant>/ArchVariant.c */
 void dvmCompilerGenMemBarrier(CompilationUnit *cUnit, int barrierKind);
 
-void buildStubTrace(CompilationUnit* cUnit, void* func);
+//void buildStubTrace(CompilationUnit* cUnit, void* (*func)(void*));
+void buildStubTrace(CompilationUnit* cUnit);
+void setupStubUnit(CompilationUnit* cUnit);
+
+CompilationUnit* createStubUnit();
 //void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* name);
 #endif  // DALVIK_VM_COMPILERCODEGEN_H_
