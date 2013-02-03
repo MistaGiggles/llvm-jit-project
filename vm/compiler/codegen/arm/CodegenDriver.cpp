@@ -4654,22 +4654,21 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             desc = (JitTraceDescription *)work->info;
             success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
             CompilationUnit stub;
-            memset(&stub, 0, sizeof(stub));
-            setupStubUnit(&stub);
-            stub.bailPtr = work->bailPtr;
-            stub.printMe = true;
-            stub.method = desc->method;
-            stub.traceDesc = desc;
+            
+            JitTranslationInfo* myinfo = new JitTranslationInfo;
             ALOGD("Attempting to compile stub trace");
-            loadConstant(&stub, 3, 5);//(int) (*func));
            
-            //buildStubTrace(stub, &hardcodeAdd);
-
-            //dvmCompilerAssembleLIR(&stub, info);
+            setupStubUnit(&stub);
+            stub.traceDesc=desc;
+            buildStubTrace(&stub);
+            myinfo->instructionSet = stub.instructionSet;
+            myinfo->profileCodeSize = 0;
+            dvmCompilerAssembleLIR(&stub, myinfo);
+            work->result.codeAddress=myinfo->codeAddress;
             //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
             //                            work->bailPtr, 0 /* no hints */);
-            isCompile = false;
-            success = false;
+            isCompile = true;
+            success = true;
             ALOGD("Done stub trace");
 
             break;
@@ -4803,19 +4802,24 @@ void dvmCompilerFlushRegWideImpl(CompilationUnit *cUnit, int rBase,
 */
 void setupStubUnit(CompilationUnit* cUnit)
 {
+    memset(cUnit, 0, sizeof(*cUnit));
+    //cUnit->bailPtr = bailPtr;
     cUnit->profileCodeSize = 0;
     cUnit->instructionSet = DALVIK_JIT_THUMB2;
+    dvmCompilerInitializeRegAlloc(cUnit); 
     //cUnit->jitMode = kJitTrace;
 
 }
 
 void buildStubTrace(CompilationUnit* cUnit)
 {
-    setupStubUnit(cUnit);
-    ALOGD("MGD loadConstant");
-    loadConstant(cUnit, 3, 5);//(int) (*func));
-    ALOGD("MGD opREG BLX");
-    opReg(cUnit,kOpBlx,3 );
+
+    
+    //ALOGD("MGD loadConstant");
+    loadConstant(cUnit, r3, (int) &hardcodeAdd);//(int) (*func));
+    //ALOGD("MGD opREG BLX");
+    opReg(cUnit,kOpBlx,r3 );
+
 
 }
 

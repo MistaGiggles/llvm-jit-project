@@ -73,7 +73,7 @@ void dvmCompilerGenMemBarrier(CompilationUnit *cUnit, int barrierKind);
 
 //void buildStubTrace(CompilationUnit* cUnit, void* (*func)(void*));
 void buildStubTrace(CompilationUnit* cUnit);
-void setupStubUnit(CompilationUnit* cUnit);
+void setupStubUnit(CompilationUnit* cUnit);//, jmp_buf *bailPtr);
 
 CompilationUnit* createStubUnit();
 //void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* name);
