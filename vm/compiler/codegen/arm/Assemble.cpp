@@ -1367,7 +1367,6 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
     int chainingCellGap = 0;
 
     info->instructionSet = cUnit->instructionSet;
-
     /* Beginning offset needs to allow space for chain cell offset */
     for (armLIR = (ArmLIR *) cUnit->firstLIRInsn;
          armLIR;
@@ -1386,7 +1385,6 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
         }
         /* Pseudo opcodes don't consume space */
     }
-
     /* Const values have to be word aligned */
     offset = (offset + 3) & ~3;
 
@@ -1413,7 +1411,6 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
          * space occupied by the pointer to the trace profiling counter.
          */
         chainCellOffsetLIR->operands[0] = chainCellOffset - 4;
-
         offset += sizeof(chainCellCounts) + descSize;
 
         assert((offset & 0x3) == 0);  /* Should still be word aligned */
@@ -1427,7 +1424,7 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
      * compilation unit.
      */
     offset = assignLiteralOffset(cUnit, offset);
-
+    
     cUnit->totalSize = offset;
 
     if (gDvmJit.codeCacheByteUsed + cUnit->totalSize > gDvmJit.codeCacheSize) {
@@ -1435,7 +1432,7 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
         info->discardResult = true;
         return;
     }
-
+   
     /* Allocate enough space for the code block */
     cUnit->codeBuffer = (unsigned char *)dvmCompilerNew(chainCellOffset, true);
     if (cUnit->codeBuffer == NULL) {
@@ -1443,14 +1440,14 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
         info->discardResult = true;
         return;
     }
-
+    
     /*
      * Attempt to assemble the trace.  Note that assembleInstructions
      * may rewrite the code sequence and request a retry.
      */
     cUnit->assemblerStatus = assembleInstructions(cUnit,
           (intptr_t) gDvmJit.codeCache + gDvmJit.codeCacheByteUsed);
-
+    
     switch(cUnit->assemblerStatus) {
         case kSuccess:
             break;
@@ -1472,7 +1469,7 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
              ALOGE("Unexpected assembler status: %d", cUnit->assemblerStatus);
              dvmAbort();
     }
-
+    
 #if defined(SIGNATURE_BREAKPOINT)
     if (info->discardResult == false && gDvmJit.signatureBreakpoint != NULL &&
         chainCellOffset/4 >= gDvmJit.signatureBreakpointSize) {
@@ -1498,7 +1495,7 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
         dvmUnlockMutex(&gDvmJit.compilerLock);
         return;
     }
-
+    
     cUnit->baseAddr = (char *) gDvmJit.codeCache + gDvmJit.codeCacheByteUsed;
     gDvmJit.codeCacheByteUsed += offset;
 
@@ -1507,7 +1504,7 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
     /* Install the code block */
     memcpy((char*)cUnit->baseAddr, cUnit->codeBuffer, chainCellOffset);
     gDvmJit.numCompilations++;
-
+   
     if (cUnit->jitMode != kJitMethod) {
         /* Install the chaining cell counts */
         for (i=0; i< kChainingCellGap; i++) {
@@ -1525,7 +1522,6 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
                        sizeof(chainCellCounts),
                cUnit->traceDesc, descSize);
     }
-
     /* Write the literals directly into the code cache */
     installLiteralPools(cUnit);
 
@@ -1535,7 +1531,6 @@ void dvmCompilerAssembleLIR(CompilationUnit *cUnit, JitTranslationInfo *info)
     UPDATE_CODE_CACHE_PATCHES();
 
     PROTECT_CODE_CACHE(cUnit->baseAddr, offset);
-
     /* Translation cache update complete - release lock */
     dvmUnlockMutex(&gDvmJit.compilerLock);
 

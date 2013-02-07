@@ -4592,8 +4592,8 @@ gen_fallthrough:
 bool dvmCompilerDoWork(CompilerWorkOrder *work)
 {
     JitTraceDescription *desc;
-    bool isCompile;
-    bool success = true;
+    bool isCompile = false;
+    bool success = false;
 
 
     std::string appName1 = "jp.kentarokodama.elementbenchmark.jitonroot";
@@ -4618,6 +4618,10 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             {
                 //ALOGD("Was able to change worktype");
                 work->kind = kWorkOrderTraceLLVM;
+            } else {
+                // =============================================== STOP
+
+                return false;
             }
     }
 
@@ -4652,25 +4656,53 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             break;
         case kWorkOrderTraceLLVM: {
             desc = (JitTraceDescription *)work->info;
-            success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
-            CompilationUnit stub;
-            
-            JitTranslationInfo* myinfo = new JitTranslationInfo;
-            ALOGD("Attempting to compile stub trace");
-           
-            setupStubUnit(&stub);
-            stub.traceDesc=desc;
-            buildStubTrace(&stub);
-            myinfo->instructionSet = stub.instructionSet;
-            myinfo->profileCodeSize = 0;
-            dvmCompilerAssembleLIR(&stub, myinfo);
-            work->result.codeAddress=myinfo->codeAddress;
-            //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
-            //                            work->bailPtr, 0 /* no hints */);
-            isCompile = true;
-            success = true;
-            ALOGD("Done stub trace");
+            if(strcmp(desc->method->name, "addTwo")==0)
+            {
+                //success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
+                CompilationUnit stub;
+                
+                JitTranslationInfo* myinfo = new JitTranslationInfo;
+                ALOGD("Attempting to compile stub trace");
+                ALOGD("APPNAME: %s : method : %s ", gDvmJit.appName, desc->method->name);
+                setupStubUnit(&stub);
+                stub.traceDesc=desc;
+                stub.method = desc->method;
+                buildStubTrace(&stub);
+                myinfo->instructionSet = stub.instructionSet;
+                myinfo->profileCodeSize = 0;
+                if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
+                if(stub.chainingCellBottom==NULL) ALOGD("Bottom chaining cell null");
+                if(stub.chainCellOffsetLIR==NULL) ALOGD("Chain cell offset is null");
+                if(stub.classPointerList==NULL) ALOGD("classPointerList is null");
+                if(stub.literalList==NULL) ALOGD("literalList is null");
+                stub.chainingCellBottom = (LIR *) newLIR0(&stub, kArmChainingCellBottom);
+                stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
+                dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
+                
 
+                if(stub.assemblerStatus==kSuccess)
+                {
+                    isCompile = true;
+                    success = true;
+                    ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL %X",  (int)myinfo->codeAddress);
+                } else ALOGD("MGD STUB TRACE COMPILATION DID WORK!");
+
+                work->result.codeAddress=myinfo->codeAddress;
+                if(myinfo->codeAddress==NULL)
+                {
+                    ALOGD("codeAddress is null");
+                    isCompile = false;
+                    success = false;
+                }
+                //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
+                //                            work->bailPtr, 0 /* no hints */);
+                
+                ALOGD("Done stub trace");
+            } else 
+            {
+                isCompile = false;
+                success = false;
+            }
             break;
         }
 
@@ -4807,7 +4839,7 @@ void setupStubUnit(CompilationUnit* cUnit)
     cUnit->profileCodeSize = 0;
     cUnit->instructionSet = DALVIK_JIT_THUMB2;
     dvmCompilerInitializeRegAlloc(cUnit); 
-    //cUnit->jitMode = kJitTrace;
+    cUnit->jitMode = kJitTrace;
 
 }
 
@@ -4816,9 +4848,15 @@ void buildStubTrace(CompilationUnit* cUnit)
 
     
     //ALOGD("MGD loadConstant");
+    newLIR1(cUnit, kArmPseudoPseudoAlign4, 1);
+    //loadConstant(cUnit, r2, (int) cUnit->method->registerMap->data);
+    opRegReg(cUnit, kOpMov, r0, rFP);
     loadConstant(cUnit, r3, (int) &hardcodeAdd);//(int) (*func));
-    //ALOGD("MGD opREG BLX");
     opReg(cUnit,kOpBlx,r3 );
+    //const DexCode *dexCode = dvmGetMethodCode(desc->method);
+    
+    //const u2 *codePtr = dexCode->insns + curOffset;
+    handleNormalChainingCell(cUnit, 4 );
 
 
 }
@@ -4828,3 +4866,4 @@ void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* target)
     //genConditionalBranch(cUnit, kArmCondEq, )
 
 }
+

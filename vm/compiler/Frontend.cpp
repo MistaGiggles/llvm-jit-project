@@ -1685,6 +1685,8 @@ void runOtherTest()
 
 void* hardcodeAdd(void* rgs)
 {
+    ALOGD("MGD running HARDCODE ADD");
+
     /*
     u1* regs;
     __asm(
@@ -1695,9 +1697,17 @@ void* hardcodeAdd(void* rgs)
         :"r0"
     );*/
     int* regs = (int*) rgs;
-    regs[2] = regs[4] + regs[1];
-    ALOGD("MGD RAN HARDCODE ADD");
+    ALOGD("MGD REGS: %X - %d", (int)rgs, regs[0]);
+    //regs[2] = regs[4] + regs[1];
+    //ALOGD("MGD Finished HARDCODE ADD");
     return NULL;
+}
+
+void hardcodeAdd2()
+{
+
+     ALOGD("MGD RAN HARDCODE ADD2");
+     //return NULL;
 }
 //extern  ArmLIR *loadConstant(CompilationUnit*, int, int);
 //extern  ArmLIR *opReg(CompilationUnit*, OpKind, int);

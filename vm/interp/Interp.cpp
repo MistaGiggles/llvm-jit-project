@@ -1696,6 +1696,14 @@ void dvmInitializeInterpBreak(Thread* thread)
 void dvmCheckBefore(const u2 *pc, u4 *fp, Thread* self)
 {
     const Method* method = self->interpSave.method;
+    if(pc >= method->insns && pc <
+           method->insns + dvmGetMethodInsnsSize(method))
+    {
+
+    } else {
+        ALOGD("MGD ASSERT WILL BREAK THIS");
+    }
+
     assert(pc >= method->insns && pc <
            method->insns + dvmGetMethodInsnsSize(method));
 
