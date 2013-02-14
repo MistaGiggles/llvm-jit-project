@@ -1937,7 +1937,17 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         ALOGD("--------\nCompiler: Building trace for %s, offset %#x",
              desc->method->name, curOffset);
     }
+	/*
 
+	Create LLVM Module
+	Set up compiler
+	Create function prototype
+
+	create basic block (for each instruction?)
+	return instructions handled differently (to pass back dalvik pc of next trace)
+	Compile trace
+	return pointer to function & other necessary information
+	*/
     /*
      * Analyze the trace descriptor and include up to the maximal number
      * of Dalvik instructions into the IR.
@@ -1989,7 +1999,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 break;
         }
         //=====
-
+	
+	
         /* The trace should never incude instruction data */
         assert(width);
         insn->width = width;
@@ -2360,6 +2371,7 @@ bool dvmCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr,
                      int optHints)
 {
+
     const DexCode *dexCode = dvmGetMethodCode(desc->method);
     const JitTraceRun* currRun = &desc->trace[0];
     unsigned int curOffset = currRun->info.frag.startOffset;
@@ -2395,6 +2407,8 @@ bool dvmCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     compilationId++;
     memset(&cUnit, 0, sizeof(CompilationUnit));
 
+
+
 #if defined(WITH_JIT_TUNING)
     /* Locate the entry to store compilation statistics for this method */
     methodStats = dvmCompilerAnalyzeMethodBody(desc->method, false);
@@ -2405,6 +2419,10 @@ bool dvmCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
     /* Initialize the printMe flag */
     cUnit.printMe = gDvmJit.printMe;
+
+     if(strcmp(desc->method->name, "addTwo")==0){
+        cUnit.printMe = true;
+    }
 
     /* Setup the method */
     cUnit.method = desc->method;

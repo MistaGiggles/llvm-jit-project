@@ -4655,9 +4655,12 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             isCompile = false;
             break;
         case kWorkOrderTraceLLVM: {
+
             desc = (JitTraceDescription *)work->info;
+            ALOGD("MGD WORKING WITH %s", desc->method->name);
             if(strcmp(desc->method->name, "addTwo")==0)
             {
+                dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
                 //success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
                 CompilationUnit stub;
                 
@@ -4677,16 +4680,23 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 if(stub.literalList==NULL) ALOGD("literalList is null");
                 stub.chainingCellBottom = (LIR *) newLIR0(&stub, kArmChainingCellBottom);
                 stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
-                dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
-                
+                dvmCompilerInitializeRegAlloc(&stub); 
 
+                ALOGD("MGD+ ================================");
+                dvmCompilerCodegenDump(&stub);
+                ALOGD("MGD- ================================");
+                dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
+                ALOGD("MGD+ ================================");
+                dvmCompilerCodegenDump(&stub);
+                ALOGD("MGD- ================================");
+                ALOGD("MGD CodeSize: %d", stub.totalSize);
                 if(stub.assemblerStatus==kSuccess)
                 {
                     isCompile = true;
                     success = true;
                     ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL %X",  (int)myinfo->codeAddress);
-                } else ALOGD("MGD STUB TRACE COMPILATION DID WORK!");
-
+                } else ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
+                work->result.profileCodeSize = stub.totalSize;
                 work->result.codeAddress=myinfo->codeAddress;
                 if(myinfo->codeAddress==NULL)
                 {
@@ -4837,8 +4847,8 @@ void setupStubUnit(CompilationUnit* cUnit)
     memset(cUnit, 0, sizeof(*cUnit));
     //cUnit->bailPtr = bailPtr;
     cUnit->profileCodeSize = 0;
+    cUnit->printMe = true;
     cUnit->instructionSet = DALVIK_JIT_THUMB2;
-    dvmCompilerInitializeRegAlloc(cUnit); 
     cUnit->jitMode = kJitTrace;
 
 }
@@ -4848,18 +4858,28 @@ void buildStubTrace(CompilationUnit* cUnit)
 
     
     //ALOGD("MGD loadConstant");
-    newLIR1(cUnit, kArmPseudoPseudoAlign4, 1);
+   // newLIR1(cUnit, kArmPseudoPseudoAlign4, 1);
     //loadConstant(cUnit, r2, (int) cUnit->method->registerMap->data);
-    opRegReg(cUnit, kOpMov, r0, rFP);
-    loadConstant(cUnit, r3, (int) &hardcodeAdd);//(int) (*func));
-    opReg(cUnit,kOpBlx,r3 );
+    //opRegReg(cUnit, kOpMov, r0, rFP);
+    //loadConstant(cUnit, r3, (int) &hardcodeAdd);//(int) (*func));
+    //opReg(cUnit,kOpBlx,r3 );
     //const DexCode *dexCode = dvmGetMethodCode(desc->method);
     
     //const u2 *codePtr = dexCode->insns + curOffset;
-    handleNormalChainingCell(cUnit, 4 );
+    //handleNormalChainingCell(cUnit, 1 );
 
+    // reconstruct pc
+    newLIR3(cUnit, kThumbLdrRRI5, r0, r15pc , 28>>2); //   ldr r0, [r15pc, #28]
+    newLIR3(cUnit, kThumbLdrRRI5, r1, r6SELF , 108>>2);
+    //loadBaseIndexed(cUnit, r6SELF, 108, r1,0, kUnsignedByte); //     ldr r1, [r6, #108]
+    //opReg(cUnit, kOpBlx, r1);
+
+    //newLIR3(cUnit, kThumbLdrRRI5, r0, r6SELF, offsetof(Thread, jitToInterpEntries.dvmJitToInterpNormal) >> 2);
+    newLIR1(cUnit, kThumbBlxR, r1);
 
 }
+
+
 
 void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* target)
 {
