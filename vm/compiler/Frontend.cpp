@@ -1726,7 +1726,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr,
                      int optHints)
 {
-
+    /////llvm::InitializeNativeTarget();
     //if(JitIsHere()){
             //ALOGD("LLVM - Entered my own JIT function");
     if(strcmp(desc->method->name, "addTwo")!=0) {return false;}
