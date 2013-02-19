@@ -206,7 +206,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *trace, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr, int optHints);
 
 void runOtherTest();
-void* hardcodeAdd(void* rgs);
+extern "C" void* hardcodeAdd(void* rgs);
 void hardcodeAdd2();
 
 /* End of my Stuff */

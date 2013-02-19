@@ -4658,10 +4658,10 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
 
             desc = (JitTraceDescription *)work->info;
             ALOGD("MGD WORKING WITH %s", desc->method->name);
-            if(strcmp(desc->method->name, "addTwo")==0)
+            if(strcmp(desc->method->name, "addTwo")==0 && work->pc==desc->method->insns)
             {
-                dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
-                //success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
+                //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
+                success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
                 CompilationUnit stub;
                 
                 JitTranslationInfo* myinfo = new JitTranslationInfo;
@@ -4680,8 +4680,12 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 if(stub.literalList==NULL) ALOGD("literalList is null");
                 stub.chainingCellBottom = (LIR *) newLIR0(&stub, kArmChainingCellBottom);
                 stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
-                dvmCompilerInitializeRegAlloc(&stub); 
-
+               	myinfo->cacheVersion = gDvmJit.cacheVersion;
+		myinfo->discardResult = false; 
+		if(myinfo->instructionSet==DALVIK_JIT_THUMB2)
+		{
+			ALOGD("MGD THUMB2 INSTRUCTION SET");
+		}
                 ALOGD("MGD+ ================================");
                 dvmCompilerCodegenDump(&stub);
                 ALOGD("MGD- ================================");
@@ -4694,7 +4698,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 {
                     isCompile = true;
                     success = true;
-                    ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL %X",  (int)myinfo->codeAddress);
+                    ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL addr: %X insn %X", (int)myinfo->codeAddress ,*((short*)myinfo->codeAddress));
                 } else ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
                 work->result.profileCodeSize = stub.totalSize;
                 work->result.codeAddress=myinfo->codeAddress;
@@ -4846,7 +4850,8 @@ void setupStubUnit(CompilationUnit* cUnit)
 {
     memset(cUnit, 0, sizeof(*cUnit));
     //cUnit->bailPtr = bailPtr;
-    cUnit->profileCodeSize = 0;
+    dvmCompilerInitializeRegAlloc(cUnit);
+	cUnit->profileCodeSize = 0;
     cUnit->printMe = true;
     cUnit->instructionSet = DALVIK_JIT_THUMB2;
     cUnit->jitMode = kJitTrace;
@@ -4856,26 +4861,31 @@ void setupStubUnit(CompilationUnit* cUnit)
 void buildStubTrace(CompilationUnit* cUnit)
 {
 
-    
+    //loadConstant(cUnit, r0, 0);
+    //newLIR3(cUnit, kThumbLdrRRI5, r0, r0, 0);
     //ALOGD("MGD loadConstant");
-   // newLIR1(cUnit, kArmPseudoPseudoAlign4, 1);
+    //newLIR1(cUnit, kArmPseudoPseudoAlign4, 1);
     //loadConstant(cUnit, r2, (int) cUnit->method->registerMap->data);
-    //opRegReg(cUnit, kOpMov, r0, rFP);
-    //loadConstant(cUnit, r3, (int) &hardcodeAdd);//(int) (*func));
-    //opReg(cUnit,kOpBlx,r3 );
+    for(int i = 0; i < 64; i++)
+	{
+	newLIR2(cUnit, kThumbOrr, r0, r0);
+	}	
+	opRegReg(cUnit, kOpMov, r0, rFP);
+    loadConstant(cUnit, r3, (int) hardcodeAdd);//(int) (*func));
+    opReg(cUnit,kOpBlx,r3 );
     //const DexCode *dexCode = dvmGetMethodCode(desc->method);
     
     //const u2 *codePtr = dexCode->insns + curOffset;
-    //handleNormalChainingCell(cUnit, 1 );
+    handleNormalChainingCell(cUnit, 5 );
 
     // reconstruct pc
-    newLIR3(cUnit, kThumbLdrRRI5, r0, r15pc , 28>>2); //   ldr r0, [r15pc, #28]
-    newLIR3(cUnit, kThumbLdrRRI5, r1, r6SELF , 108>>2);
+    //newLIR3(cUnit, kThumbLdrRRI5, r0, r15pc , 28>>2); //   ldr r0, [r15pc, #28]
+    //newLIR3(cUnit, kThumbLdrRRI5, r1, r6SELF , 108>>2);
     //loadBaseIndexed(cUnit, r6SELF, 108, r1,0, kUnsignedByte); //     ldr r1, [r6, #108]
     //opReg(cUnit, kOpBlx, r1);
 
     //newLIR3(cUnit, kThumbLdrRRI5, r0, r6SELF, offsetof(Thread, jitToInterpEntries.dvmJitToInterpNormal) >> 2);
-    newLIR1(cUnit, kThumbBlxR, r1);
+    //newLIR1(cUnit, kThumbBlxR, r1);
 
 }
 

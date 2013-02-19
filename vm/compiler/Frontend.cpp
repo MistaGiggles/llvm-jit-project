@@ -1683,9 +1683,9 @@ void runOtherTest()
     return;
 }
 
-void* hardcodeAdd(void* rgs)
+extern "C" void* hardcodeAdd(void* rgs)
 {
-    ALOGD("MGD running HARDCODE ADD");
+    //ALOGD("MGD running HARDCODE ADD");
 
     /*
     u1* regs;
@@ -1697,8 +1697,8 @@ void* hardcodeAdd(void* rgs)
         :"r0"
     );*/
     int* regs = (int*) rgs;
-    ALOGD("MGD REGS: %X - %d", (int)rgs, regs[0]);
-    //regs[2] = regs[4] + regs[1];
+    //ALOGD("MGD REGS: %X - %d", (int)rgs, regs[0]);
+    regs[0] = regs[2] + regs[3];
     //ALOGD("MGD Finished HARDCODE ADD");
     return NULL;
 }
@@ -1729,7 +1729,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     /////llvm::InitializeNativeTarget();
     //if(JitIsHere()){
             //ALOGD("LLVM - Entered my own JIT function");
-    if(strcmp(desc->method->name, "addTwo")!=0) {return false;}
+    //if(strcmp(desc->method->name, "addTwo")!=0) {return false;}
     //info->codeAddress =(void*) (*runOtherTest);
     //ALOGD("MGD RETURNING STUFF");
     //return true;
@@ -1742,47 +1742,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
 
     
-    //}
-    /*
-    llvm::InitializeNativeTarget();
-
-    llvm::Module* mod = new llvm::Module("LLVM Module", llvm::getGlobalContext());
-    mod->setDataLayout("e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128");
-    mod->setTargetTriple("armv7-unknown-linux-gnueabi");
-
-    llvm::Constant* con = mod->getOrInsertFunction("test", llvm::IntegerType::get(mod->getContext(), 32), NULL);
-    llvm::Function* testy = llvm::cast<llvm::Function>(con);
-    llvm::BasicBlock* blk = llvm::BasicBlock::Create(llvm::getGlobalContext(), "ent", testy);
-    llvm::IRBuilder<> b(blk);
-    llvm::ConstantInt* const_int32_1 = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, llvm::StringRef("5"), 10));
-    b.CreateRet(const_int32_1);
-
-    std::string errStr;
-    llvm::ExecutionEngine* ee = llvm::EngineBuilder(mod).setErrorStr(&errStr).create();
-    double calleeSave[8];
-    int asmres = 10;
-    int asmres2 = 10;
-
-    ALOGD("LLVM Compiler - %s",errStr.c_str());
-    llvm::Function* test = ee->FindFunctionNamed("test");
-    void* asmptr = ee->getPointerToFunction(test);
-  
-    dvmJitCalleeSave(calleeSave);
-  
-    __asm(
-
-        "blx  %0\n\t"
-        "mov %[asmres], r0\n\t"
-        "mov %[asmres2], r1\n\t"
-        :[asmres] "=r" (asmres), [asmres2] "=r" (asmres2)
-        :[asmptr] "r" (asmptr)
-        : "r0", "r1"
-    );
-
-  
-  dvmJitCalleeRestore(calleeSave);
-  ALOGD("Assembly call result: %d , %d",asmres, asmres2);
-    */
+   
  
 
 
@@ -1791,17 +1751,16 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     const DexCode *dexCode = dvmGetMethodCode(desc->method);
     const JitTraceRun* currRun = &desc->trace[0];
     unsigned int curOffset = currRun->info.frag.startOffset;
-    unsigned int startOffset = curOffset;
+    //unsigned int startOffset = curOffset;
     unsigned int numInsts = currRun->info.frag.numInsts;
     const u2 *codePtr = dexCode->insns + curOffset;
     int traceSize = 0;  // # of half-words
     const u2 *startCodePtr = codePtr;
-    BasicBlock *curBB, *entryCodeBB;
-    int numBlocks = 0;
+    //int numBlocks = 0;
     
     static int compilationId;
     CompilationUnit cUnit;
-    GrowableList *blockList;
+    //GrowableList *blockList;
 #if defined(WITH_JIT_TUNING)
     CompilerMethodStats *methodStats;
 #endif
@@ -1842,101 +1801,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     cUnit.traceDesc = desc;
     cUnit.jitMode = kJitTrace;
 
-    /* Initialize the PC reconstruction list */
-    dvmInitGrowableList(&cUnit.pcReconstructionList, 8);
-
-    /* Initialize the basic block list */
-    blockList = &cUnit.blockList;
-    dvmInitGrowableList(blockList, 8);
-
-    /* Identify traces that we don't want to compile */
-    if (gDvmJit.methodTable) {
-        int len = strlen(desc->method->clazz->descriptor) +
-                  strlen(desc->method->name) + 1;
-        char *fullSignature = (char *)dvmCompilerNew(len, true);
-        strcpy(fullSignature, desc->method->clazz->descriptor);
-        strcat(fullSignature, desc->method->name);
-
-        int hashValue = dvmComputeUtf8Hash(fullSignature);
-
-        /*
-         * Doing three levels of screening to see whether we want to skip
-         * compiling this method
-         */
-
-        /* First, check the full "class;method" signature */
-        bool methodFound =
-            dvmHashTableLookup(gDvmJit.methodTable, hashValue,
-                               fullSignature, (HashCompareFunc) strcmp,
-                               false) !=
-            NULL;
-
-        /* Full signature not found - check the enclosing class */
-        if (methodFound == false) {
-            int hashValue = dvmComputeUtf8Hash(desc->method->clazz->descriptor);
-            methodFound =
-                dvmHashTableLookup(gDvmJit.methodTable, hashValue,
-                               (char *) desc->method->clazz->descriptor,
-                               (HashCompareFunc) strcmp, false) !=
-                NULL;
-            /* Enclosing class not found - check the method name */
-            if (methodFound == false) {
-                int hashValue = dvmComputeUtf8Hash(desc->method->name);
-                methodFound =
-                    dvmHashTableLookup(gDvmJit.methodTable, hashValue,
-                                   (char *) desc->method->name,
-                                   (HashCompareFunc) strcmp, false) !=
-                    NULL;
-
-                /*
-                 * Debug by call-graph is enabled. Check if the debug list
-                 * covers any methods on the VM stack.
-                 */
-                if (methodFound == false && gDvmJit.checkCallGraph == true) {
-                    methodFound =
-                        filterMethodByCallGraph(info->requestingThread,
-                                                desc->method->name);
-                }
-            }
-        }
-
-        /*
-         * Under the following conditions, the trace will be *conservatively*
-         * compiled by only containing single-step instructions to and from the
-         * interpreter.
-         * 1) If includeSelectedMethod == false, the method matches the full or
-         *    partial signature stored in the hash table.
-         *
-         * 2) If includeSelectedMethod == true, the method does not match the
-         *    full and partial signature stored in the hash table.
-         */
-        if (gDvmJit.includeSelectedMethod != methodFound) {
-            cUnit.allSingleStep = true;
-        } else {
-            /* Compile the trace as normal */
-
-            /* Print the method we cherry picked */
-            if (gDvmJit.includeSelectedMethod == true) {
-                cUnit.printMe = true;
-            }
-        }
-    }
-
-    /* Allocate the entry block */
-    curBB = dvmCompilerNewBB(kEntryBlock, numBlocks++);
-    dvmInsertGrowableList(blockList, (intptr_t) curBB);
-    curBB->startOffset = curOffset;
-
-    entryCodeBB = dvmCompilerNewBB(kDalvikByteCode, numBlocks++);
-    dvmInsertGrowableList(blockList, (intptr_t) entryCodeBB);
-    entryCodeBB->startOffset = curOffset;
-    curBB->fallThrough = entryCodeBB;
-    curBB = entryCodeBB;
-
-    if (cUnit.printMe) {
-        ALOGD("--------\nCompiler: Building trace for %s, offset %#x",
-             desc->method->name, curOffset);
-    }
+    
 	/*
 
 	Create LLVM Module
@@ -1952,6 +1817,69 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
      * Analyze the trace descriptor and include up to the maximal number
      * of Dalvik instructions into the IR.
      */
+
+
+ //}
+    /*
+    llvm::InitializeNativeTarget();
+
+    llvm::Module* mod = new llvm::Module("LLVM Module", llvm::getGlobalContext());
+    mod->setDataLayout("e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128");
+    mod->setTargetTriple("armv7-unknown-linux-gnueabi");
+
+    llvm::Constant* con = mod->getOrInsertFunction("test", llvm::IntegerType::get(mod->getContext(), 32), NULL);
+    llvm::Function* testy = llvm::cast<llvm::Function>(con);
+    llvm::BasicBlock* blk = llvm::BasicBlock::Create(llvm::getGlobalContext(), "ent", testy);
+    llvm::IRBuilder<> b(blk);
+    llvm::ConstantInt* const_int32_1 = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, llvm::StringRef("5"), 10));
+    b.CreateRet(const_int32_1);
+
+    std::string errStr;
+    llvm::ExecutionEngine* ee = llvm::EngineBuilder(mod).setErrorStr(&errStr).create();
+    double calleeSave[8];
+    int asmres = 10;
+    int asmres2 = 10;
+
+    ALOGD("LLVM Compiler - %s",errStr.c_str());
+    llvm::Function* test = ee->FindFunctionNamed("test");
+    void* asmptr = ee->getPointerToFunction(test);
+  
+    dvmJitCalleeSave(calleeSave);
+  
+    __asm(
+
+        "blx  %0\n\t"
+        "mov %[asmres], r0\n\t"
+        "mov %[asmres2], r1\n\t"
+        :[asmres] "=r" (asmres), [asmres2] "=r" (asmres2)
+        :[asmptr] "r" (asmptr)
+        : "r0", "r1"
+    );
+
+  
+  dvmJitCalleeRestore(calleeSave);
+  ALOGD("Assembly call result: %d , %d",asmres, asmres2);
+    */
+
+
+    llvm::InitializeNativeTarget();
+    llvm::Module * mod = new llvm::Module("JIT", llvm::getGlobalContext());
+    mod->setDataLayout("e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128");
+    mod->setTargetTriple("armv7-unknown-linux-gnueabi");
+
+    llvm::Constant* con = mod->getOrInsertFunction("jitFunc",
+                                    llvm::IntegerType::get(mod->getContext(), 32),
+                                    llvm::PointerType::get(llvm::IntegerType::get(mod->getContext(), 32),0),
+    /*/ args terminated by NULL */  NULL);
+    llvm::Function* jitfunc = llvm::cast<llvm::Function>(con);
+    jitfunc->setCallingConv(llvm::CallingConv::C);
+    llvm::Function::arg_iterator args = jitfunc->arg_begin();
+    llvm::Value* rgs = args++;
+    rgs->setName("rgs");
+    llvm::BasicBlock* block = llvm::BasicBlock::Create(mod->getContext(), "main", jitfunc,0);
+    llvm::IRBuilder<> builder(block);
+
+
      if(traceprint < 0) {return false;}
      traceprint -= 1;
     while (1) {
@@ -1969,15 +1897,16 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         opcodecount[(int)opcode] += 1;
         ALOGD("MGD LLVM TRACE : %X, %X %X %X",
          opcode,
-         desc->method->registerMap->data[insn->dalvikInsn.vA],
-        desc->method->registerMap->data[insn->dalvikInsn.vB],
-        desc->method->registerMap->data[insn->dalvikInsn.vC]);
+        insn->dalvikInsn.vA,
+        insn->dalvikInsn.vB,
+        insn->dalvikInsn.vC);
         if(opcode == 242) {
             long val = desc->method->insns[
                 desc->method->registerMap->data[insn->dalvikInsn.vB] +
                  desc->method->registerMap->data[insn->dalvikInsn.vC]];
             ALOGD("MGD IGET VALUE : %ld", val);
         }
+        
         switch(opcode)
         {
             case OP_NOP:
@@ -2005,7 +1934,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         assert(width);
         insn->width = width;
         traceSize += width;
-        dvmCompilerAppendMIR(curBB, insn);
+        //dvmCompilerAppendMIR(curBB, insn);
         cUnit.numInsts++;
 
         int flags = dexGetFlagsFromOpcode(insn->dalvikInsn.opcode);
@@ -2042,11 +1971,10 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                     break;
                 }
 
-                curBB = dvmCompilerNewBB(kDalvikByteCode, numBlocks++);
-                dvmInsertGrowableList(blockList, (intptr_t) curBB);
+               
                 curOffset = currRun->info.frag.startOffset;
                 numInsts = currRun->info.frag.numInsts;
-                curBB->startOffset = curOffset;
+                
                 codePtr = dexCode->insns + curOffset;
             }
         } else {
@@ -2069,286 +1997,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     methodStats->compiledDalvikSize += traceSize * 2;
 #endif
 
-    /*
-     * Now scan basic blocks containing real code to connect the
-     * taken/fallthrough links. Also create chaining cells for code not included
-     * in the trace.
-     */
-    size_t blockId;
-    for (blockId = 0; blockId < blockList->numUsed; blockId++) {
-        curBB = (BasicBlock *) dvmGrowableListGetElement(blockList, blockId);
-        MIR *lastInsn = curBB->lastMIRInsn;
-        /* Skip empty blocks */
-        if (lastInsn == NULL) {
-            continue;
-        }
-        curOffset = lastInsn->offset;
-        unsigned int targetOffset = curOffset;
-        unsigned int fallThroughOffset = curOffset + lastInsn->width;
-        bool isInvoke = false;
-        const Method *callee = NULL;
 
-        findBlockBoundary(desc->method, curBB->lastMIRInsn, curOffset,
-                          &targetOffset, &isInvoke, &callee);
-
-        /* Link the taken and fallthrough blocks */
-        BasicBlock *searchBB;
-
-        int flags = dexGetFlagsFromOpcode(lastInsn->dalvikInsn.opcode);
-
-        if (flags & kInstrInvoke) {
-            cUnit.hasInvoke = true;
-        }
-
-        /* Backward branch seen */
-        if (isInvoke == false &&
-            (flags & kInstrCanBranch) != 0 &&
-            targetOffset < curOffset &&
-            (optHints & JIT_OPT_NO_LOOP) == 0) {
-            dvmCompilerArenaReset();
-            return compileLoop(&cUnit, startOffset, desc, numMaxInsts,
-                               info, bailPtr, optHints);
-        }
-
-        /* No backward branch in the trace - start searching the next BB */
-        size_t searchBlockId;
-        for (searchBlockId = blockId+1; searchBlockId < blockList->numUsed;
-             searchBlockId++) {
-            searchBB = (BasicBlock *) dvmGrowableListGetElement(blockList,
-                                                                searchBlockId);
-            if (targetOffset == searchBB->startOffset) {
-                curBB->taken = searchBB;
-                dvmCompilerSetBit(searchBB->predecessors, curBB->id);
-            }
-            if (fallThroughOffset == searchBB->startOffset) {
-                curBB->fallThrough = searchBB;
-                dvmCompilerSetBit(searchBB->predecessors, curBB->id);
-
-                /*
-                 * Fallthrough block of an invoke instruction needs to be
-                 * aligned to 4-byte boundary (alignment instruction to be
-                 * inserted later.
-                 */
-                if (flags & kInstrInvoke) {
-                    searchBB->isFallThroughFromInvoke = true;
-                }
-            }
-        }
-
-        /*
-         * Some blocks are ended by non-control-flow-change instructions,
-         * currently only due to trace length constraint. In this case we need
-         * to generate an explicit branch at the end of the block to jump to
-         * the chaining cell.
-         */
-        curBB->needFallThroughBranch =
-            ((flags & (kInstrCanBranch | kInstrCanSwitch | kInstrCanReturn |
-                       kInstrInvoke)) == 0);
-        if (lastInsn->dalvikInsn.opcode == OP_PACKED_SWITCH ||
-            lastInsn->dalvikInsn.opcode == OP_SPARSE_SWITCH) {
-            int i;
-            const u2 *switchData = desc->method->insns + lastInsn->offset +
-                             lastInsn->dalvikInsn.vB;
-            int size = switchData[1];
-            int maxChains = MIN(size, MAX_CHAINED_SWITCH_CASES);
-
-            /*
-             * Generate the landing pad for cases whose ranks are higher than
-             * MAX_CHAINED_SWITCH_CASES. The code will re-enter the interpreter
-             * through the NoChain point.
-             */
-            if (maxChains != size) {
-                cUnit.switchOverflowPad =
-                    desc->method->insns + lastInsn->offset;
-            }
-
-            s4 *targets = (s4 *) (switchData + 2 +
-                    (lastInsn->dalvikInsn.opcode == OP_PACKED_SWITCH ?
-                     2 : size * 2));
-
-            /* One chaining cell for the first MAX_CHAINED_SWITCH_CASES cases */
-            for (i = 0; i < maxChains; i++) {
-                BasicBlock *caseChain = dvmCompilerNewBB(kChainingCellNormal,
-                                                         numBlocks++);
-                dvmInsertGrowableList(blockList, (intptr_t) caseChain);
-                caseChain->startOffset = lastInsn->offset + targets[i];
-            }
-
-            /* One more chaining cell for the default case */
-            BasicBlock *caseChain = dvmCompilerNewBB(kChainingCellNormal,
-                                                     numBlocks++);
-            dvmInsertGrowableList(blockList, (intptr_t) caseChain);
-            caseChain->startOffset = lastInsn->offset + lastInsn->width;
-        /* Fallthrough block not included in the trace */
-        } else if (!isUnconditionalBranch(lastInsn) &&
-                   curBB->fallThrough == NULL) {
-            BasicBlock *fallThroughBB;
-            /*
-             * If the chaining cell is after an invoke or
-             * instruction that cannot change the control flow, request a hot
-             * chaining cell.
-             */
-            if (isInvoke || curBB->needFallThroughBranch) {
-                fallThroughBB = dvmCompilerNewBB(kChainingCellHot, numBlocks++);
-            } else {
-                fallThroughBB = dvmCompilerNewBB(kChainingCellNormal,
-                                                 numBlocks++);
-            }
-            dvmInsertGrowableList(blockList, (intptr_t) fallThroughBB);
-            fallThroughBB->startOffset = fallThroughOffset;
-            curBB->fallThrough = fallThroughBB;
-            dvmCompilerSetBit(fallThroughBB->predecessors, curBB->id);
-        }
-        /* Target block not included in the trace */
-        if (curBB->taken == NULL &&
-            (isGoto(lastInsn) || isInvoke ||
-            (targetOffset != UNKNOWN_TARGET && targetOffset != curOffset))) {
-            BasicBlock *newBB = NULL;
-            if (isInvoke) {
-                /* Monomorphic callee */
-                if (callee) {
-                    /* JNI call doesn't need a chaining cell */
-                    if (!dvmIsNativeMethod(callee)) {
-                        newBB = dvmCompilerNewBB(kChainingCellInvokeSingleton,
-                                                 numBlocks++);
-                        newBB->startOffset = 0;
-                        newBB->containingMethod = callee;
-                    }
-                /* Will resolve at runtime */
-                } else {
-                    newBB = dvmCompilerNewBB(kChainingCellInvokePredicted,
-                                             numBlocks++);
-                    newBB->startOffset = 0;
-                }
-            /* For unconditional branches, request a hot chaining cell */
-            } else {
-#if !defined(WITH_SELF_VERIFICATION)
-                newBB = dvmCompilerNewBB(dexIsGoto(flags) ?
-                                                  kChainingCellHot :
-                                                  kChainingCellNormal,
-                                         numBlocks++);
-                newBB->startOffset = targetOffset;
-#else
-                /* Handle branches that branch back into the block */
-                if (targetOffset >= curBB->firstMIRInsn->offset &&
-                    targetOffset <= curBB->lastMIRInsn->offset) {
-                    newBB = dvmCompilerNewBB(kChainingCellBackwardBranch,
-                                             numBlocks++);
-                } else {
-                    newBB = dvmCompilerNewBB(dexIsGoto(flags) ?
-                                                      kChainingCellHot :
-                                                      kChainingCellNormal,
-                                             numBlocks++);
-                }
-                newBB->startOffset = targetOffset;
-#endif
-            }
-            if (newBB) {
-                curBB->taken = newBB;
-                dvmCompilerSetBit(newBB->predecessors, curBB->id);
-                dvmInsertGrowableList(blockList, (intptr_t) newBB);
-            }
-        }
-    }
-
-    /* Now create a special block to host PC reconstruction code */
-    curBB = dvmCompilerNewBB(kPCReconstruction, numBlocks++);
-    dvmInsertGrowableList(blockList, (intptr_t) curBB);
-
-    /* And one final block that publishes the PC and raise the exception */
-    curBB = dvmCompilerNewBB(kExceptionHandling, numBlocks++);
-    dvmInsertGrowableList(blockList, (intptr_t) curBB);
-    cUnit.puntBlock = curBB;
-
-    if (cUnit.printMe) {
-        char* signature =
-            dexProtoCopyMethodDescriptor(&desc->method->prototype);
-        ALOGD("TRACEINFO (%d): 0x%08x %s%s.%s %#x %d of %d, %d blocks",
-            compilationId,
-            (intptr_t) desc->method->insns,
-            desc->method->clazz->descriptor,
-            desc->method->name,
-            signature,
-            desc->trace[0].info.frag.startOffset,
-            traceSize,
-            dexCode->insnsSize,
-            numBlocks);
-        free(signature);
-    }
-
-    cUnit.numBlocks = numBlocks;
-
-    /* Set the instruction set to use (NOTE: later components may change it) */
-    cUnit.instructionSet = dvmCompilerInstructionSet();
-
-    /* Inline transformation @ the MIR level */
-    if (cUnit.hasInvoke && !(gDvmJit.disableOpt & (1 << kMethodInlining))) {
-        dvmCompilerInlineMIR(&cUnit, info);
-    }
-    // By now the instructions *should* be in MIR mode
-    // stmfd   sp!, {r0-r2,lr}    - saves registers to stack
-    /* ============================================================*/
-
-    cUnit.numDalvikRegisters = cUnit.method->registersSize;
-
-    /* Preparation for SSA conversion */
-    dvmInitializeSSAConversion(&cUnit);
-
-    dvmCompilerNonLoopAnalysis(&cUnit);
-
-    dvmCompilerInitializeRegAlloc(&cUnit);  // Needs to happen after SSA naming
-
-    if (cUnit.printMe) {
-        dvmCompilerDumpCompilationUnit(&cUnit);
-    }
-
-    /* Allocate Registers using simple local allocation scheme */
-    dvmCompilerLocalRegAlloc(&cUnit);
-
-    /* Convert MIR to LIR, etc. */
-    dvmCompilerMIR2LIR(&cUnit);
-
-    /* Convert LIR into machine code. Loop for recoverable retries */
-    do {
-        dvmCompilerAssembleLIR(&cUnit, info);
-        cUnit.assemblerRetries++;
-        if (cUnit.printMe && cUnit.assemblerStatus != kSuccess)
-            ALOGD("Assembler abort #%d on %d",cUnit.assemblerRetries,
-                  cUnit.assemblerStatus);
-    } while (cUnit.assemblerStatus == kRetryAll);
-
-    if (cUnit.printMe) {
-        ALOGD("Trace Dalvik PC: %p", startCodePtr);
-        dvmCompilerCodegenDump(&cUnit);
-        ALOGD("End %s%s, %d Dalvik instructions",
-             desc->method->clazz->descriptor, desc->method->name,
-             cUnit.numInsts);
-    }
-    if (cUnit.assemblerStatus == kRetryHalve) {
-        /* Reset the compiler resource pool before retry */
-        dvmCompilerArenaReset();
-
-        /* Halve the instruction count and start from the top */
-        return dvmCompileTrace(desc, cUnit.numInsts / 2, info, bailPtr,
-                               optHints);
-    }
-
-    /*
-     * If this trace uses class objects as constants,
-     * dvmJitInstallClassObjectPointers will switch the thread state
-     * to running and look up the class pointers using the descriptor/loader
-     * tuple stored in the callsite info structure. We need to make this window
-     * as short as possible since it is blocking GC.
-     */
-    if (cUnit.hasClassLiterals && info->codeAddress) {
-        dvmJitInstallClassObjectPointers(&cUnit, (char *) info->codeAddress);
-    }
-
-    /*
-     * Since callsiteinfo is allocated from the arena, delay the reset until
-     * class pointers are resolved.
-     */
-    dvmCompilerArenaReset();
 
     assert(cUnit.assemblerStatus == kSuccess);
 #if defined(WITH_JIT_TUNING)
