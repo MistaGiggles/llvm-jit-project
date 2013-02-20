@@ -4670,7 +4670,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 setupStubUnit(&stub);
                 stub.traceDesc=desc;
                 stub.method = desc->method;
-                buildStubTrace(&stub);
+                buildStubTrace(&stub, &work->result);
                 myinfo->instructionSet = stub.instructionSet;
                 myinfo->profileCodeSize = 0;
                 if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
@@ -4858,7 +4858,7 @@ void setupStubUnit(CompilationUnit* cUnit)
 
 }
 
-void buildStubTrace(CompilationUnit* cUnit)
+void buildStubTrace(CompilationUnit* cUnit, JitTranslationInfo* info)
 {
 
     //loadConstant(cUnit, r0, 0);
@@ -4871,7 +4871,7 @@ void buildStubTrace(CompilationUnit* cUnit)
 	newLIR2(cUnit, kThumbOrr, r0, r0);
 	}	
 	opRegReg(cUnit, kOpMov, r0, rFP);
-    loadConstant(cUnit, r3, (int) hardcodeAdd);//(int) (*func));
+    loadConstant(cUnit, r3, (int) info->codeAddress);//(int) (*func));
     opReg(cUnit,kOpBlx,r3 );
     //const DexCode *dexCode = dvmGetMethodCode(desc->method);
     

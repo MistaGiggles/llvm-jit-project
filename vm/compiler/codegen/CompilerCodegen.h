@@ -72,7 +72,7 @@ int dvmCompilerTargetOptHint(int key);
 void dvmCompilerGenMemBarrier(CompilationUnit *cUnit, int barrierKind);
 
 //void buildStubTrace(CompilationUnit* cUnit, void* (*func)(void*));
-void buildStubTrace(CompilationUnit* cUnit);
+void buildStubTrace(CompilationUnit* cUnit, JitTranslationInfo* info);
 void setupStubUnit(CompilationUnit* cUnit);//, jmp_buf *bailPtr);
 
 CompilationUnit* createStubUnit();

@@ -43,15 +43,31 @@
 #include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
-
-#include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include "llvm/ExecutionEngine/JIT.h"
 
 
 
 // 
 #include "llvm/LLVMContext.h"
+#include "llvm/Module.h"
+#include "llvm/DerivedTypes.h"
+#include "llvm/Constants.h"
+#include "llvm/GlobalVariable.h"
+#include "llvm/Function.h"
+#include "llvm/CallingConv.h"
+#include "llvm/BasicBlock.h"
+#include "llvm/Instructions.h"
+#include "llvm/InlineAsm.h"
+#include "llvm/Support/FormattedStream.h"
+#include "llvm/Support/MathExtras.h"
+#include "llvm/Pass.h"
+#include "llvm/PassManager.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Analysis/Verifier.h"
+#include "llvm/Assembly/PrintModulePass.h"
+
+
+ #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/Constants.h"
@@ -1726,6 +1742,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr,
                      int optHints)
 {
+
+    using namespace llvm;
     /////llvm::InitializeNativeTarget();
     //if(JitIsHere()){
             //ALOGD("LLVM - Entered my own JIT function");
@@ -1860,17 +1878,24 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
   dvmJitCalleeRestore(calleeSave);
   ALOGD("Assembly call result: %d , %d",asmres, asmres2);
     */
-
-
+  
     llvm::InitializeNativeTarget();
     llvm::Module * mod = new llvm::Module("JIT", llvm::getGlobalContext());
     mod->setDataLayout("e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128");
     mod->setTargetTriple("armv7-unknown-linux-gnueabi");
+    // Type Definitions
+
+    llvm::PointerType* IntegerPointer = llvm::PointerType::get(llvm::IntegerType::get(mod->getContext(), 32), 0);
+    //llvm::PointerType* PointerToIntegerPointer = llvm::PointerType::get(IntegerPointer,0);
+    //llvm::ArrayType* IntegerArray = llvm::ArrayType::get(llvm::IntegerType::get(mod->getContext(), 32), 5);
+    //llvm::PointerType* PointerToIntegerArray = llvm::PointerType::get(IntegerArray, 0);
+
+
 
     llvm::Constant* con = mod->getOrInsertFunction("jitFunc",
                                     llvm::IntegerType::get(mod->getContext(), 32),
                                     llvm::PointerType::get(llvm::IntegerType::get(mod->getContext(), 32),0),
-    /*/ args terminated by NULL */  NULL);
+                                  NULL);
     llvm::Function* jitfunc = llvm::cast<llvm::Function>(con);
     jitfunc->setCallingConv(llvm::CallingConv::C);
     llvm::Function::arg_iterator args = jitfunc->arg_begin();
@@ -1878,7 +1903,11 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     rgs->setName("rgs");
     llvm::BasicBlock* block = llvm::BasicBlock::Create(mod->getContext(), "main", jitfunc,0);
     llvm::IRBuilder<> builder(block);
-
+    // set up arg handling
+    llvm::AllocaInst* LLVMStack = new llvm::AllocaInst(IntegerPointer, "",block );
+    LLVMStack->setAlignment(8);
+    new llvm::StoreInst(rgs, LLVMStack, false, block);
+    
 
      if(traceprint < 0) {return false;}
      traceprint -= 1;
@@ -1888,7 +1917,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         insn = (MIR *)dvmCompilerNew(sizeof(MIR), true);
         insn->offset = curOffset;
         width = parseInsn(codePtr, &insn->dalvikInsn, cUnit.printMe);
-
+	
 
         //====
         //const u2 *codePtrLLVM = dexCode->insns + curOffset;
@@ -1907,6 +1936,41 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             ALOGD("MGD IGET VALUE : %ld", val);
         }
         
+        if(opcode==OP_ADD_INT)
+        {
+			llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+            llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
+            llvm::ConstantInt* vC = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vC));
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+            llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vB, "", block);
+            llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+            llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vC, "", block);
+            llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
+            llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+            llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
+            new llvm::StoreInst(Result, ResultStore, false, block);
+        }
+        if(opcode==OP_IF_GEZ)
+        {
+            //llvm::ConstantInt* vA = ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vA));
+            llvm::ConstantInt* vB = ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vB));
+            llvm::ReturnInst::Create(mod->getContext(), vB, block);
+
+
+            // BUILD
+
+            std::string errStr;
+            llvm::ExecutionEngine* ee = llvm::EngineBuilder(mod).setErrorStr(&errStr).create();
+            ALOGD("LLVM Compiler - %s",errStr.c_str());
+            ALOGD("LLVM COMPILER chain to: %d", insn->dalvikInsn.vB + curOffset);
+            llvm::Function* rtn = ee->FindFunctionNamed("jitFunc");
+            void* funcptr = ee->getPointerToFunction(rtn);
+            info->codeAddress = funcptr;
+            
+            return true;
+            
+        }
+
         switch(opcode)
         {
             case OP_NOP:
