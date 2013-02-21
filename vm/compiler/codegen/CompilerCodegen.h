@@ -74,7 +74,7 @@ void dvmCompilerGenMemBarrier(CompilationUnit *cUnit, int barrierKind);
 //void buildStubTrace(CompilationUnit* cUnit, void* (*func)(void*));
 void buildStubTrace(CompilationUnit* cUnit, JitTranslationInfo* info);
 void setupStubUnit(CompilationUnit* cUnit);//, jmp_buf *bailPtr);
-
+void appendChains(CompilationUnit* cUnit, LLVMChaining& chaining);
 CompilationUnit* createStubUnit();
 //void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* name);
 #endif  // DALVIK_VM_COMPILERCODEGEN_H_

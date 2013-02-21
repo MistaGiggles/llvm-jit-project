@@ -3714,29 +3714,31 @@ static bool handleFmt51l(CompilationUnit *cUnit, MIR *mir)
  * and the restoration of the first half of the 32-bit branch for
  * rechaining.
  */
-static void insertChainingSwitch(CompilationUnit *cUnit)
+static ArmLIR* insertChainingSwitch(CompilationUnit *cUnit)
 {
     ArmLIR *branch = newLIR0(cUnit, kThumbBUncond);
     newLIR2(cUnit, kThumbOrr, r0, r0);
     ArmLIR *target = newLIR0(cUnit, kArmPseudoTargetLabel);
     target->defMask = ENCODE_ALL;
     branch->generic.target = (LIR *) target;
+    return branch;
 }
 
 /* Chaining cell for code that may need warmup. */
-static void handleNormalChainingCell(CompilationUnit *cUnit,
+static ArmLIR* handleNormalChainingCell(CompilationUnit *cUnit,
                                      unsigned int offset)
 {
     /*
      * Use raw instruction constructors to guarantee that the generated
      * instructions fit the predefined cell size.
      */
-    insertChainingSwitch(cUnit);
+    ArmLIR* br = insertChainingSwitch(cUnit);
     newLIR3(cUnit, kThumbLdrRRI5, r0, r6SELF,
             offsetof(Thread,
                      jitToInterpEntries.dvmJitToInterpNormal) >> 2);
     newLIR1(cUnit, kThumbBlxR, r0);
     addWordData(cUnit, NULL, (int) (cUnit->method->insns + offset));
+    return br;
 }
 
 /*
@@ -4658,10 +4660,19 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
 
             desc = (JitTraceDescription *)work->info;
             ALOGD("MGD WORKING WITH %s", desc->method->name);
+            if(strcmp(desc->method->name, "addTwo")==0)
+            {
+                gDvmJit.printMe = true;
+                dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
+            }
             if(strcmp(desc->method->name, "addTwo")==0 && work->pc==desc->method->insns)
             {
+                LLVMChaining chaining;
+                //LLVMChainInfo chain;
+                chaining.num = 1;
+                //chaining.chains.push_back(chain);
                 //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
-                success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0);
+                success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0, chaining);
                 CompilationUnit stub;
                 
                 JitTranslationInfo* myinfo = new JitTranslationInfo;
@@ -4671,6 +4682,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 stub.traceDesc=desc;
                 stub.method = desc->method;
                 buildStubTrace(&stub, &work->result);
+                appendChains(&stub, chaining);
                 myinfo->instructionSet = stub.instructionSet;
                 myinfo->profileCodeSize = 0;
                 if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
@@ -4876,7 +4888,10 @@ void buildStubTrace(CompilationUnit* cUnit, JitTranslationInfo* info)
     //const DexCode *dexCode = dvmGetMethodCode(desc->method);
     
     //const u2 *codePtr = dexCode->insns + curOffset;
-    handleNormalChainingCell(cUnit, 5 );
+
+    //handleNormalChainingCell(cUnit, 5 );
+    //ALOGD("LLVM return branch should be: %X",  (int) gDvmJit.codeCache + templateEntryOffsets[TEMPLATE_RETURN]);
+
 
     // reconstruct pc
     //newLIR3(cUnit, kThumbLdrRRI5, r0, r15pc , 28>>2); //   ldr r0, [r15pc, #28]
@@ -4889,11 +4904,31 @@ void buildStubTrace(CompilationUnit* cUnit, JitTranslationInfo* info)
 
 }
 
+void appendChains(CompilationUnit* cUnit, LLVMChaining& chaining)
+{
+    std::vector<ArmLIR*> branches(chaining.chains.size());
+    for(unsigned int i = 0; i < chaining.chains.size(); i++)
+    {
+        //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
+        ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
+        branches[chaining.chains[i].num] = branch;
+    }
 
+    for(unsigned int i = 0; i < chaining.chains.size(); i++)
+    {
+        if(chaining.chains[i].num != 0) {
+            ArmLIR* to = handleNormalChainingCell(cUnit, chaining.chains[i].offset);
+            branches[chaining.chains[i].num]->generic.target =(LIR*) to;
+        } else {
+
+        }
+    }
+
+}
 
 void addChainingCellStub(CompilationUnit* cUnit, int pc, ArmLIR* target)
 {
-    //genConditionalBranch(cUnit, kArmCondEq, )
+    
 
 }
 

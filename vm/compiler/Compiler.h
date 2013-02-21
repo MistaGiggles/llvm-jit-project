@@ -202,12 +202,24 @@ bool dvmCompileTrace(JitTraceDescription *trace, int numMaxInsts,
 
 
 /* My LLVM Stuff */
+typedef struct LLVMChainInfo {
+    int num;
+    int offset;
+    int codeAddr;
+} LLVMChainInfo;
+
+typedef struct LLVMChaining {
+    std::vector<LLVMChainInfo> chains;
+    int num;
+} LLVMChaining;
+
 bool dvmLLVMCompileTrace(JitTraceDescription *trace, int numMaxInsts,
-                     JitTranslationInfo *info, jmp_buf *bailPtr, int optHints);
+                     JitTranslationInfo *info, jmp_buf *bailPtr, int optHints, LLVMChaining& chaining );
 
 void runOtherTest();
 extern "C" void* hardcodeAdd(void* rgs);
 void hardcodeAdd2();
+
 
 /* End of my Stuff */
 

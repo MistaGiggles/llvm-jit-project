@@ -1740,7 +1740,7 @@ int traceprint = 10000;
 
 bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                      JitTranslationInfo *info, jmp_buf *bailPtr,
-                     int optHints)
+                     int optHints, LLVMChaining& chaining)
 {
 
     using namespace llvm;
@@ -1936,7 +1936,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             ALOGD("MGD IGET VALUE : %ld", val);
         }
         
-        if(opcode==OP_ADD_INT)
+        if(opcode==OP_ADD_INT || opcode==OP_SUB_INT || opcode==OP_MUL_INT)
         {
 			llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
@@ -1946,15 +1946,33 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
             llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vC, "", block);
             llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
-            llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+            //llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+            llvm::BinaryOperator* Result = NULL;
+            if(opcode == OP_ADD_INT)
+                    Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+                  
+
+            if(opcode ==  OP_SUB_INT)
+                    Result = llvm::BinaryOperator::Create(llvm::Instruction::Sub, OpA2, OpB2, "", block);
+                   
+
+            if(opcode ==  OP_MUL_INT)
+                    Result = llvm::BinaryOperator::Create(llvm::Instruction::Mul, OpA2, OpB2, "", block);
+         
+                     
             llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
             new llvm::StoreInst(Result, ResultStore, false, block);
         }
-        if(opcode==OP_IF_GEZ)
+        if(opcode==OP_IF_GEZ && 1==0)
         {
+            LLVMChainInfo chain;
+            chain.num = chaining.num;
+            chaining.num+=1;
+            chain.offset =  insn->dalvikInsn.vB + curOffset;
             //llvm::ConstantInt* vA = ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vA));
-            llvm::ConstantInt* vB = ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vB));
-            llvm::ReturnInst::Create(mod->getContext(), vB, block);
+            llvm::ConstantInt* toChain = ConstantInt::get(mod->getContext(), APInt(32, chain.num));
+            llvm::ReturnInst::Create(mod->getContext(), toChain, block);
+            chaining.chains.push_back(chain);
 
 
             // BUILD
@@ -1966,31 +1984,79 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             llvm::Function* rtn = ee->FindFunctionNamed("jitFunc");
             void* funcptr = ee->getPointerToFunction(rtn);
             info->codeAddress = funcptr;
-            
             return true;
             
         }
+        if(opcode==OP_RETURN)
+        {
 
+        }
+        /*
         switch(opcode)
         {
             case OP_NOP:
                 break;
             case OP_ADD_INT:
-                //ALOGD("LLVMOP found OP_ADD_INT : %d", (int)opcode);
+            case OP_SUB_INT:
+            case OP_MUL_INT:
+            //case OP_DIV_INT:
+                    llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+                llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
+                llvm::ConstantInt* vC = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vC));
+                llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+                llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vB, "", block);
+                llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+                llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vC, "", block);
+                llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
+                switch(opcode)
+                {
+                    case OP_ADD_INT:
+                        llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+                        break;
+
+                    case OP_SUB_INT:
+                        llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Sub, OpA2, OpB2, "", block);
+                        break;
+
+                    case OP_MUL_INT:
+                        llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Mul, OpA2, OpB2, "", block);
+                        break;
+
+                    case OP_DIV_INT:
+                        //llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+                        break;
+                    default:
+                        break;
+                }
+                llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
+                new llvm::StoreInst(Result, ResultStore, false, block);
                 break;
-            case OP_ADD_LONG:
-                //ALOGD("LLVMOP found OP_ADD_LONG : %d", (int)opcode);
-                break;
-            case OP_ADD_FLOAT:
-                //ALOGD("LLVMOP found OP_ADD_FLOAT : %d", (int)opcode);
-                break;
-            case OP_ADD_DOUBLE:
-                //ALOGD("LLVMOP found OP_ADD_DOUBLE : %d", (int)opcode);
+            case OP_IF_GEZ:
+                LLVMChainInfo chain;
+                chain.num = chaining.num;
+                chaining.num+=1;
+                chain.offset =  insn->dalvikInsn.vB + curOffset;
+                //llvm::ConstantInt* vA = ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vA));
+                llvm::ConstantInt* toChain = ConstantInt::get(mod->getContext(), APInt(32, chain.num));
+                llvm::ReturnInst::Create(mod->getContext(), toChain, block);
+                chaining.chains.push_back(chain);
+
+
+                // BUILD
+
+                std::string errStr;
+                llvm::ExecutionEngine* ee = llvm::EngineBuilder(mod).setErrorStr(&errStr).create();
+                ALOGD("LLVM Compiler - %s",errStr.c_str());
+                ALOGD("LLVM COMPILER chain to: %d", insn->dalvikInsn.vB + curOffset);
+                llvm::Function* rtn = ee->FindFunctionNamed("jitFunc");
+                void* funcptr = ee->getPointerToFunction(rtn);
+                info->codeAddress = funcptr;
+                return true;
                 break;
             default:
                 //ALOGD("UNRECOGNISED : %d", (int)opcode)
                 break;
-        }
+        }*/
         //=====
 	
 	
