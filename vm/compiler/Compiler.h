@@ -206,6 +206,8 @@ typedef struct LLVMChainInfo {
     int num;
     int offset;
     int codeAddr;
+    int type;
+    MIR* mir;
 } LLVMChainInfo;
 
 typedef struct LLVMChaining {

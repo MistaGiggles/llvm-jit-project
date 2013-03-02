@@ -4665,7 +4665,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 gDvmJit.printMe = true;
                 dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
             }
-            if(strcmp(desc->method->name, "addTwo")==0 && work->pc==desc->method->insns)
+            if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
             {
                 LLVMChaining chaining;
                 //LLVMChainInfo chain;
@@ -4673,57 +4673,62 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                 //chaining.chains.push_back(chain);
                 //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
                 success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0, chaining);
-                CompilationUnit stub;
-                
-                JitTranslationInfo* myinfo = new JitTranslationInfo;
-                ALOGD("Attempting to compile stub trace");
-                ALOGD("APPNAME: %s : method : %s ", gDvmJit.appName, desc->method->name);
-                setupStubUnit(&stub);
-                stub.traceDesc=desc;
-                stub.method = desc->method;
-                buildStubTrace(&stub, &work->result);
-                appendChains(&stub, chaining);
-                myinfo->instructionSet = stub.instructionSet;
-                myinfo->profileCodeSize = 0;
-                if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
-                if(stub.chainingCellBottom==NULL) ALOGD("Bottom chaining cell null");
-                if(stub.chainCellOffsetLIR==NULL) ALOGD("Chain cell offset is null");
-                if(stub.classPointerList==NULL) ALOGD("classPointerList is null");
-                if(stub.literalList==NULL) ALOGD("literalList is null");
-                stub.chainingCellBottom = (LIR *) newLIR0(&stub, kArmChainingCellBottom);
-                stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
-               	myinfo->cacheVersion = gDvmJit.cacheVersion;
-		myinfo->discardResult = false; 
-		if(myinfo->instructionSet==DALVIK_JIT_THUMB2)
-		{
-			ALOGD("MGD THUMB2 INSTRUCTION SET");
-		}
-                ALOGD("MGD+ ================================");
-                dvmCompilerCodegenDump(&stub);
-                ALOGD("MGD- ================================");
-                dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
-                ALOGD("MGD+ ================================");
-                dvmCompilerCodegenDump(&stub);
-                ALOGD("MGD- ================================");
-                ALOGD("MGD CodeSize: %d", stub.totalSize);
-                if(stub.assemblerStatus==kSuccess)
+                if(success)
                 {
-                    isCompile = true;
-                    success = true;
-                    ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL addr: %X insn %X", (int)myinfo->codeAddress ,*((short*)myinfo->codeAddress));
-                } else ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
-                work->result.profileCodeSize = stub.totalSize;
-                work->result.codeAddress=myinfo->codeAddress;
-                if(myinfo->codeAddress==NULL)
-                {
-                    ALOGD("codeAddress is null");
+                    CompilationUnit stub;
+                    
+                    JitTranslationInfo* myinfo = new JitTranslationInfo;
+                    ALOGD("Attempting to compile stub trace");
+                    ALOGD("APPNAME: %s : method : %s ", gDvmJit.appName, desc->method->name);
+                    setupStubUnit(&stub);
+                    stub.traceDesc=desc;
+                    stub.method = desc->method;
+                    buildStubTrace(&stub, &work->result);
+                    appendChains(&stub, chaining);
+                    myinfo->instructionSet = stub.instructionSet;
+                    myinfo->profileCodeSize = 0;
+                    if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
+                    if(stub.chainingCellBottom==NULL) ALOGD("Bottom chaining cell null");
+                    if(stub.chainCellOffsetLIR==NULL) ALOGD("Chain cell offset is null");
+                    if(stub.classPointerList==NULL) ALOGD("classPointerList is null");
+                    if(stub.literalList==NULL) ALOGD("literalList is null");
+                    stub.chainingCellBottom = (LIR *) newLIR0(&stub, kArmChainingCellBottom);
+                    stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
+                   	myinfo->cacheVersion = gDvmJit.cacheVersion;
+            		myinfo->discardResult = false; 
+            		if(myinfo->instructionSet==DALVIK_JIT_THUMB2)
+            		{
+            			ALOGD("MGD THUMB2 INSTRUCTION SET");
+            		}
+                    ALOGD("MGD+ ================================");
+                    dvmCompilerCodegenDump(&stub);
+                    ALOGD("MGD- ================================");
+                    dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
+                    ALOGD("MGD+ ================================");
+                    dvmCompilerCodegenDump(&stub);
+                    ALOGD("MGD- ================================");
+                    ALOGD("MGD CodeSize: %d", stub.totalSize);
+                    if(stub.assemblerStatus==kSuccess)
+                    {
+                        isCompile = true;
+                        success = true;
+                        ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL addr: %X insn %X", (int)myinfo->codeAddress ,*((short*)myinfo->codeAddress));
+                    } else ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
+                    work->result.profileCodeSize = stub.totalSize;
+                    work->result.codeAddress=myinfo->codeAddress;
+                    if(myinfo->codeAddress==NULL)
+                    {
+                        ALOGD("codeAddress is null");
+                        isCompile = false;
+                        success = false;
+                    }
+                    //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
+                    //                            work->bailPtr, 0 /* no hints */);
+                    
+                    ALOGD("Done stub trace");
+                } else {
                     isCompile = false;
-                    success = false;
                 }
-                //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
-                //                            work->bailPtr, 0 /* no hints */);
-                
-                ALOGD("Done stub trace");
             } else 
             {
                 isCompile = false;
@@ -4909,18 +4914,22 @@ void appendChains(CompilationUnit* cUnit, LLVMChaining& chaining)
     std::vector<ArmLIR*> branches(chaining.chains.size());
     for(unsigned int i = 0; i < chaining.chains.size(); i++)
     {
-        //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
-        ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
-        branches[chaining.chains[i].num] = branch;
+        if(chaining.chains[i].type != 0) 
+        {
+            //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
+            ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
+            branches[chaining.chains[i].num] = branch;
+        }
+        
     }
 
     for(unsigned int i = 0; i < chaining.chains.size(); i++)
     {
-        if(chaining.chains[i].num != 0) {
+        if(chaining.chains[i].type != 0) {
             ArmLIR* to = handleNormalChainingCell(cUnit, chaining.chains[i].offset);
             branches[chaining.chains[i].num]->generic.target =(LIR*) to;
         } else {
-
+            genReturnCommon(cUnit, chaining.chains[i].mir);
         }
     }
 
