@@ -15,6 +15,7 @@
  */
  #define __STDC_LIMIT_MACROS
  #define __STDC_CONSTANT_MACROS
+#include <sstream>
 
 #include "Dalvik.h"
 #include "libdex/DexOpcodes.h"
@@ -84,6 +85,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Assembly/PrintModulePass.h"
+#include "llvm/LinkAllPasses.h"
 
 
 extern "C" void dvmJitCalleeSave(double *saveArea);
@@ -1918,8 +1920,12 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
   dvmJitCalleeRestore(calleeSave);
   ALOGD("Assembly call result: %d , %d",asmres, asmres2);
     */
+    const bool useBlocks = true;
+    
     LLVMInsns* blockList = new LLVMInsns();
     blockList->Init();
+    
+    
     llvm::InitializeNativeTarget();
     llvm::Module * mod = new llvm::Module("JIT", llvm::getGlobalContext());
     mod->setDataLayout("e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128");
@@ -1946,7 +1952,9 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     llvm::BasicBlock* block = llvm::BasicBlock::Create(mod->getContext(), "BLOCK", jitfunc,0);
     llvm::BasicBlock* block2;
     llvm::BranchInst::Create(block, main);
-    blockList->label = block;
+    if(useBlocks) {
+        blockList->label = block;
+    }
     //llvm::IRBuilder<> builder(block);
     // set up arg handling
     llvm::AllocaInst* LLVMStack = new llvm::AllocaInst(IntegerPointer, "",block );
@@ -1983,11 +1991,12 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         
         if(opcode==OP_ADD_INT || opcode==OP_SUB_INT || opcode==OP_MUL_INT)
         {
-            blockList = blockList->add(block);
-            block2 =  llvm::BasicBlock::Create(mod->getContext(), "INT", jitfunc,0);
-            llvm::BranchInst::Create(block2, block);
-            block = block2;
-
+            if(useBlocks) {
+                blockList = blockList->add(block);
+                block2 =  llvm::BasicBlock::Create(mod->getContext(), "INT", jitfunc,0);
+                llvm::BranchInst::Create(block2, block);
+                block = block2;
+            }
 
 			llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
@@ -2019,11 +2028,12 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
         } else if(opcode==OP_ADD_INT_2ADDR || opcode==OP_SUB_INT_2ADDR || opcode==OP_MUL_INT_2ADDR)
         {
-            blockList = blockList->add(block);
-            block2 =  llvm::BasicBlock::Create(mod->getContext(), "INT-2ADDR", jitfunc,0);
-            llvm::BranchInst::Create(block2, block);
-            block = block2;
-
+            if(useBlocks) {
+                blockList = blockList->add(block);
+                block2 =  llvm::BasicBlock::Create(mod->getContext(), "INT-2ADDR", jitfunc,0);
+                llvm::BranchInst::Create(block2, block);
+                block = block2;
+            }
             // Adds, subs or mulls vA with vB
             ALOGD("LLVM ADDING 2ADDR instruction");
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
@@ -2055,10 +2065,12 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         }
         else if( opcode==OP_IF_EQZ || opcode==OP_IF_NEZ || opcode==OP_IF_LTZ || opcode==OP_IF_GEZ || opcode==OP_IF_GTZ || opcode==OP_IF_LEZ )
         {
-            blockList = blockList->add(block);
-            block2 =  llvm::BasicBlock::Create(mod->getContext(), "IF", jitfunc,0);
-            llvm::BranchInst::Create(block2, block);
-            block = block2;
+            if(useBlocks) {
+                blockList = blockList->add(block);
+                block2 =  llvm::BasicBlock::Create(mod->getContext(), "IF", jitfunc,0);
+                llvm::BranchInst::Create(block2, block);
+                block = block2;
+            }
             ALOGD("LLVM ADDING IF STATEMENT");
 
             // True Chaining Cell
@@ -2155,13 +2167,12 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         }
         else if (opcode==OP_GOTO) {
             ALOGD("LLVM ADDING GOTO");
-            return false;
             LLVMChainInfo chain;
             chain.num = chaining.num;
-            chain.type = 1;
+            chain.type = 2;
             chain.mir = insn;
             chaining.num+=1;
-            chain.offset =  insn->dalvikInsn.vA + curOffset;
+            chain.offset = insn->dalvikInsn.vA;
             chaining.chains.push_back(chain);
             llvm::ConstantInt* toChain = ConstantInt::get(mod->getContext(), APInt(32, chain.num));
             llvm::ReturnInst::Create(mod->getContext(), toChain, block);
@@ -2178,6 +2189,21 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
             
         }
+        else if(opcode==OP_MOVE ) {
+            llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+            llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
+            
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+            llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vA, "", block);
+            llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+            llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vB, "", block);
+            llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
+
+
+            new llvm::StoreInst(OpA2, OpB1, false, block);
+            new llvm::StoreInst(OpB2, OpA1, false, block);
+
+        }
         else
         {
             // unrecognised instruciton
@@ -2192,23 +2218,201 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             llvm::raw_string_ostream mystream(msg);
             PM.add(llvm::createPrintModulePass(&mystream));
             PM.run(*mod);
-            ALOGD("LLVM : %s", msg.c_str());
+            std::istringstream stream(msg);
+            std::string line;
+            ALOGD("LLVM OUTPUT IR BEFORE OPTIMISATION ====================================");
+            while(std::getline(stream, line)) {
+                ALOGD("%s", line.c_str());
+            }
+                            //ALOGD("LLVM OUTPUT : %s", msg.c_str());
             std::string verMsg;
             ALOGD("LLVM DEBUG: Verify");
             if(llvm::verifyModule(*mod, llvm::PrintMessageAction, &verMsg)) {
                 ALOGD("LLVM INVALID MODULE: %s", verMsg.c_str());
+            } else {
+                ALOGD("LLVM VERTIFY MESSAGE: %s", verMsg.c_str());
             }
             
-            
+            ALOGD("LLVM ATTEMPTING TO DO LOADS OF PASSES");
+            // Add in optimizations. These were taken from a list that 'opt', LLVMs optimization tool, uses.
+            llvm::PassManager p;
+            p.add(llvm::createPromoteMemoryToRegisterPass());
+            p.add(llvm::createConstantMergePass());
+            p.add(llvm::createConstantPropagationPass());
+            p.add(llvm::createDeadArgEliminationPass());
+            p.add(llvm::createDeadCodeEliminationPass());
+            p.add(llvm::createDeadInstEliminationPass());
+            p.add(llvm::createDeadStoreEliminationPass());
+            p.add(llvm::createCFGSimplificationPass());
+            p.add(llvm::createPromoteMemoryToRegisterPass());
+            p.add(llvm::createGlobalOptimizerPass());
+            p.add(llvm::createGlobalDCEPass());
+            p.add(llvm::createFunctionInliningPass()); 
+            p.add(llvm::createDemoteRegisterToMemoryPass());
+            p.add(llvm::createGlobalOptimizerPass());
+            p.add(llvm::createGlobalsModRefPass());
+            p.add(llvm::createIPConstantPropagationPass());
+            p.add(llvm::createIPSCCPPass());
+            p.add(llvm::createIndVarSimplifyPass());
+            p.add(llvm::createInstructionCombiningPass());
+            p.add(llvm::createLCSSAPass());
+            p.add(llvm::createLICMPass());
+            p.add(llvm::createLazyValueInfoPass());
+            p.add(llvm::createLoopExtractorPass());
+            p.add(llvm::createLoopSimplifyPass());
+            p.add(llvm::createLoopStrengthReducePass());
+            p.add(llvm::createLoopUnrollPass());
+            p.add(llvm::createLoopUnswitchPass());
+            p.add(llvm::createLoopIdiomPass());
 
+            /*
+            //p.add(new llvm::TargetData(jit));
+            //p.add(llvm::createVerifierPass());
+            //p.add(llvm::createLowerSetJmpPass());
+            //p.add(llvm::createRaiseAllocationsPass());
+            p.add(llvm::createCFGSimplificationPass());
+            p.add(llvm::createPromoteMemoryToRegisterPass());
+            p.add(llvm::createGlobalOptimizerPass());
+            p.add(llvm::createGlobalDCEPass());
+            p.add(llvm::createFunctionInliningPass()); 
 
+            p.add(llvm::createAAEvalPass());
+            p.add(llvm::createAggressiveDCEPass());
+            p.add(llvm::createAliasAnalysisCounterPass());
+            p.add(llvm::createAliasDebugger());
+            p.add(llvm::createArgumentPromotionPass());
+            p.add(llvm::createBasicAliasAnalysisPass());
+            p.add(llvm::createLibCallAliasAnalysisPass(0));
+            p.add(llvm::createScalarEvolutionAliasAnalysisPass());
+            p.add(llvm::createTypeBasedAliasAnalysisPass());
+            p.add(llvm::createBlockPlacementPass());
+            p.add(llvm::createBoundsCheckingPass());
+            p.add(llvm::createBreakCriticalEdgesPass());
            
+            p.add(llvm::createCFGSimplificationPass());
+            p.add(llvm::createConstantMergePass());
+            p.add(llvm::createConstantPropagationPass());
+            p.add(llvm::createDeadArgEliminationPass());
+            p.add(llvm::createDeadCodeEliminationPass());
+            p.add(llvm::createDeadInstEliminationPass());
+            p.add(llvm::createDeadStoreEliminationPass());
+         //   p.add(llvm::createDomOnlyPrinterPass());
+         //   p.add(llvm::createDomPrinterPass());
+            p.add(llvm::createDomOnlyViewerPass());
+            p.add(llvm::createDomViewerPass());
+            p.add(llvm::createEdgeProfilerPass());
+            p.add(llvm::createOptimalEdgeProfilerPass());
+            p.add(llvm::createPathProfilerPass());
+            p.add(llvm::createGCOVProfilerPass());
+            p.add(llvm::createFunctionInliningPass());
+            p.add(llvm::createAlwaysInlinerPass());
+            p.add(llvm::createGlobalDCEPass());
+            p.add(llvm::createGlobalOptimizerPass());
+            p.add(llvm::createGlobalsModRefPass());
+            p.add(llvm::createIPConstantPropagationPass());
+            p.add(llvm::createIPSCCPPass());
+            p.add(llvm::createIndVarSimplifyPass());
+            p.add(llvm::createInstructionCombiningPass());
+            p.add(llvm::createLCSSAPass());
+            p.add(llvm::createLICMPass());
+            p.add(llvm::createLazyValueInfoPass());
+            p.add(llvm::createLoopExtractorPass());
+            p.add(llvm::createLoopSimplifyPass());
+            p.add(llvm::createLoopStrengthReducePass());
+            p.add(llvm::createLoopUnrollPass());
+            p.add(llvm::createLoopUnswitchPass());
+            p.add(llvm::createLoopIdiomPass());
+            p.add(llvm::createLoopRotatePass());
+            p.add(llvm::createLowerExpectIntrinsicPass());
+            p.add(llvm::createLowerInvokePass());
+            p.add(llvm::createLowerSwitchPass());
+            p.add(llvm::createNoAAPass());
+            p.add(llvm::createNoProfileInfoPass());
+            p.add(llvm::createObjCARCAliasAnalysisPass());
+            p.add(llvm::createObjCARCAPElimPass());
+            p.add(llvm::createObjCARCExpandPass());
+            p.add(llvm::createObjCARCContractPass());
+            p.add(llvm::createObjCARCOptPass());
+            p.add(llvm::createProfileEstimatorPass());
+            p.add(llvm::createProfileVerifierPass());
+            p.add(llvm::createPathProfileVerifierPass());
+            p.add(llvm::createProfileLoaderPass());
+            p.add(llvm::createProfileMetadataLoaderPass());
+            p.add(llvm::createPathProfileLoaderPass());
+            p.add(llvm::createPromoteMemoryToRegisterPass());
+            p.add(llvm::createDemoteRegisterToMemoryPass());
+            p.add(llvm::createPruneEHPass());
+           // p.add(llvm::createPostDomOnlyPrinterPass());
+           // p.add(llvm::createPostDomPrinterPass());
+            p.add(llvm::createPostDomOnlyViewerPass());
+            p.add(llvm::createPostDomViewerPass());
+            p.add(llvm::createReassociatePass());
+            p.add(llvm::createRegionInfoPass());
+          //  p.add(llvm::createRegionOnlyPrinterPass());
+            p.add(llvm::createRegionOnlyViewerPass());
+          //  p.add(llvm::createRegionPrinterPass());
+
+
+          */
+            /*
+            p.add(llvm::createRegionViewerPass());
+            p.add(llvm::createSCCPPass());
+            p.add(llvm::createScalarReplAggregatesPass());
+            p.add(llvm::createSimplifyLibCallsPass());
+            p.add(llvm::createSingleLoopExtractorPass());
+            p.add(llvm::createStripSymbolsPass());
+            p.add(llvm::createStripNonDebugSymbolsPass());
+            p.add(llvm::createStripDeadDebugInfoPass());
+            p.add(llvm::createStripDeadPrototypesPass());
+            p.add(llvm::createTailCallEliminationPass());
+            p.add(llvm::createJumpThreadingPass());
+            p.add(llvm::createUnifyFunctionExitNodesPass());
+            p.add(llvm::createInstCountPass());
+            p.add(llvm::createCodeGenPreparePass());
+            p.add(llvm::createEarlyCSEPass());
+            p.add(llvm::createGVNPass());
+            p.add(llvm::createMemCpyOptPass());
+            p.add(llvm::createLoopDeletionPass());
+            p.add(llvm::createPostDomTree());
+            p.add(llvm::createInstructionNamerPass());
+            p.add(llvm::createFunctionAttrsPass());
+            p.add(llvm::createMergeFunctionsPass());
+         //   p.add(llvm::createModuleDebugInfoPrinterPass());
+            p.add(llvm::createPartialInliningPass());
+            p.add(llvm::createLintPass());
+            p.add(llvm::createSinkingPass());
+            p.add(llvm::createLowerAtomicPass());
+            p.add(llvm::createCorrelatedValuePropagationPass());
+         //   p.add(llvm::createMemDepPrinter());
+            p.add(llvm::createInstructionSimplifierPass());
+            p.add(llvm::createBBVectorizePass());
+
+
+
+            */
+
+
+            p.run(*mod);
+           
+            ALOGD("LLVM OUTPUT IR AFTER OPTIMISATION ====================================");
+            llvm::PassManager PMa;
+            std::string msga;
+            llvm::raw_string_ostream mystreama(msga);
+            PMa.add(llvm::createPrintModulePass(&mystreama));
+            PMa.run(*mod);
+            std::istringstream streama(msga);
+            std::string linea;
+            ALOGD("LLVM OUTPUT IR");
+            while(std::getline(streama, linea)) {
+                ALOGD("%s", linea.c_str());
+            }
+
             //ALOGD("LLVM : %s", mystream.str().c_str());
 
             std::string errStr;
             llvm::ExecutionEngine* ee = llvm::EngineBuilder(mod).setErrorStr(&errStr).create();
             ALOGD("LLVM Compiler - %s",errStr.c_str());
-            ALOGD("LLVM COMPILER chain to: %d", insn->dalvikInsn.vB + curOffset);
+            //ALOGD("LLVM COMPILER chain to: %d", insn->dalvikInsn.vB + curOffset);
             llvm::Function* rtn = ee->FindFunctionNamed("jitFunc");
             ALOGD("LLVM COMPILER GOT FUNCTION");
             void* funcptr = ee->getPointerToFunction(rtn);

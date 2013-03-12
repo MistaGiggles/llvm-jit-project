@@ -4669,7 +4669,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             {
                 LLVMChaining chaining;
                 //LLVMChainInfo chain;
-                chaining.num = 1;
+                chaining.num = 0;
                 //chaining.chains.push_back(chain);
                 //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
                 success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0, chaining);
@@ -4696,12 +4696,13 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
                    	myinfo->cacheVersion = gDvmJit.cacheVersion;
             		myinfo->discardResult = false; 
+                    //stub.printMe = true;
             		if(myinfo->instructionSet==DALVIK_JIT_THUMB2)
             		{
             			ALOGD("MGD THUMB2 INSTRUCTION SET");
             		}
-                    ALOGD("MGD+ ================================");
-                    dvmCompilerCodegenDump(&stub);
+                    //ALOGD("MGD+ ================================");
+                    //dvmCompilerCodegenDump(&stub);
                     ALOGD("MGD- ================================");
                     dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
                     ALOGD("MGD+ ================================");
@@ -4883,7 +4884,7 @@ void buildStubTrace(CompilationUnit* cUnit, JitTranslationInfo* info)
     //ALOGD("MGD loadConstant");
     //newLIR1(cUnit, kArmPseudoPseudoAlign4, 1);
     //loadConstant(cUnit, r2, (int) cUnit->method->registerMap->data);
-    for(int i = 0; i < 64; i++)
+    for(int i = 0; i < 32; i++)
 	{
 	newLIR2(cUnit, kThumbOrr, r0, r0);
 	}	
@@ -4914,21 +4915,41 @@ void appendChains(CompilationUnit* cUnit, LLVMChaining& chaining)
     std::vector<ArmLIR*> branches(chaining.chains.size());
     for(unsigned int i = 0; i < chaining.chains.size(); i++)
     {
-        if(chaining.chains[i].type != 0) 
+        if( (signed int)i != chaining.chains[i].num) {
+            ALOGD("CGD Chaining blocks are misaligned %d %d", i, chaining.chains[i].num);
+        }
+        if(chaining.chains[i].type == 1 && (signed int)i == chaining.chains[i].num) 
         {
             //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
+            opRegImm(cUnit,kOpCmp, r0, chaining.chains[i].num );
             ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
             branches[chaining.chains[i].num] = branch;
+            ALOGD("CGD Chaining Cell Number: %d branches to offset %d TYPE IF", chaining.chains[i].num, chaining.chains[i].offset);
+
+        }
+
+        if(chaining.chains[i].type == 2 && (signed int)i == chaining.chains[i].num) 
+        {
+            //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
+            opRegImm(cUnit,kOpCmp, r0, chaining.chains[i].num );
+            ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
+            branches[chaining.chains[i].num] = branch;
+            ALOGD("CGD Chaining Cell Number: %d branches to offset %d TYPE GOTO", chaining.chains[i].num, chaining.chains[i].offset);
+
         }
         
     }
 
     for(unsigned int i = 0; i < chaining.chains.size(); i++)
     {
-        if(chaining.chains[i].type != 0) {
+        if(chaining.chains[i].type == 1 && (signed int)i == chaining.chains[i].num) {
             ArmLIR* to = handleNormalChainingCell(cUnit, chaining.chains[i].offset);
             branches[chaining.chains[i].num]->generic.target =(LIR*) to;
-        } else {
+        } else if(chaining.chains[i].type == 2) {
+            ArmLIR* to = handleNormalChainingCell(cUnit, chaining.chains[i].offset);
+            branches[chaining.chains[i].num]->generic.target =(LIR*) to;
+            
+        } else if(chaining.chains[i].type == 0 && (signed int)i == chaining.chains[i].num) {
             genReturnCommon(cUnit, chaining.chains[i].mir);
         }
     }
