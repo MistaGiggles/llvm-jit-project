@@ -1795,9 +1795,9 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     //return true;
     if(1 > 0) // traceprint
         ALOGD("MGD LLVM TRACE HEAD %s : %s : %s", desc->method->name, desc->method->clazz->descriptor, desc->method->clazz->sourceFile);
-    ALOGD("MGD REGDATA DUMP: entry numbers: %d %d, FP: %X", desc->method->registerMap->numEntries[0], desc->method->registerMap->numEntries[1], *desc->method->insns);
+    //ALOGD("MGD REGDATA DUMP: entry numbers: %d %d, FP: %X", desc->method->registerMap->numEntries[0], desc->method->registerMap->numEntries[1], *desc->method->insns);
     for(int regi = 0; regi < desc->method->registerMap->numEntries[0]; regi++){
-        ALOGD("MGD REGDATA %d : %X",regi, desc->method->registerMap->data[regi]);
+        //ALOGD("MGD REGDATA %d : %X",regi, desc->method->registerMap->data[regi]);
     }
 
 
@@ -2071,7 +2071,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 llvm::BranchInst::Create(block2, block);
                 block = block2;
             }
-            ALOGD("LLVM ADDING IF STATEMENT");
+            ALOGD("LLVM ADDING IF-Z STATEMENT");
 
             // True Chaining Cell
             LLVMChainInfo chain;
@@ -2145,6 +2145,91 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             traceEnd = true;
 
             
+        } else if (opcode==OP_IF_EQ || opcode==OP_IF_NE || opcode==OP_IF_LT || opcode==OP_IF_GE || opcode==OP_IF_GT || opcode==OP_IF_LE)
+        {
+            if(useBlocks) {
+                blockList = blockList->add(block);
+                block2 =  llvm::BasicBlock::Create(mod->getContext(), "IF", jitfunc,0);
+                llvm::BranchInst::Create(block2, block);
+                block = block2;
+            }
+            ALOGD("LLVM ADDING IF STATEMENT");
+
+            // True Chaining Cell
+            LLVMChainInfo chain;
+            chain.num = chaining.num;
+            chain.type = 1;
+            chain.mir = insn;
+            chaining.num+=1;
+            chain.offset =  insn->dalvikInsn.vC + curOffset;
+            llvm::ConstantInt* TrueChain = llvm::ConstantInt::get(mod->getContext(), APInt(32, chain.num));
+            llvm::ConstantInt* FalseChain = llvm::ConstantInt::get(mod->getContext(), APInt(32, chain.num+1));
+            //ALOGD("LLVM IF DEBUG: INTS");
+            llvm::BasicBlock* TrueBranch = llvm::BasicBlock::Create(mod->getContext(), "TRUEBRANCH", jitfunc);
+            llvm::BasicBlock* FalseBranch = llvm::BasicBlock::Create(mod->getContext(), "FALSEBRANCH", jitfunc);
+            //llvm::BasicBlock* FallThrough = llvm::BasicBlock::Create(mod->getContext(), "", jitfunc);
+            llvm::AllocaInst* rtnValue = new llvm::AllocaInst(llvm::IntegerType::get(mod->getContext(), 32), "", block);
+            rtnValue->setAlignment(4);
+            //llvm::AllocaInst* cmpValue = new llvm::AllocaInst(llvm::IntegerType::get(mod->getContext(), 32), "", block);
+            //cmpValue->setAlignment(4);
+            llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vB));
+            llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), APInt(32, insn->dalvikInsn.vA));
+
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+            llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vA, "", block);
+            llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+
+            llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vB, "", block);
+            llvm::LoadInst* OpB2= new llvm::LoadInst(OpB1, "", false, block);
+
+            llvm::ICmpInst* comparison;
+            //ALOGD("LLVM IF DEBUG: COMPARISONS");
+                //comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SLT, OpA2, OpB2, "");
+            if(opcode==OP_IF_EQ) {
+                comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_EQ, OpA2, OpB2, "IF_EQ");
+            }           
+            else if(opcode==OP_IF_NE) {
+                comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_NE, OpA2, OpB2, "IF_NE");
+            }         
+            else if(opcode==OP_IF_LT) {
+                comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SLT, OpA2, OpB2, "IF_LT");
+            }       
+            else if(opcode==OP_IF_GE) {
+                comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SGE, OpA2, OpB2, "IF_GE");
+            }
+            else if(opcode==OP_IF_GT) {
+                comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SGT, OpA2, OpB2, "IF_GT");
+            }
+            else if(opcode==OP_IF_LE) {
+                comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SLE, OpA2, OpB2, "IF_LE");
+            }    
+            ALOGD("LLVM IF DEBUG: BRANCHES");
+            llvm::BranchInst::Create(TrueBranch, FalseBranch, comparison, block);
+
+            // TrueBranch
+            new llvm::StoreInst(TrueChain, rtnValue, false, TrueBranch);
+            llvm::ReturnInst::Create(mod->getContext(), TrueChain, TrueBranch);
+            
+
+            // FalseBranch
+            new llvm::StoreInst(FalseChain, rtnValue, false, FalseBranch);
+            llvm::ReturnInst::Create(mod->getContext(), FalseChain, FalseBranch);
+            ALOGD("LLVM IF DEBUG: BLOCKLIST");
+            
+            chaining.chains.push_back(chain);
+
+            ALOGD("LLVM IF DEBUG: CHAINING");
+            // False chaining cell
+            LLVMChainInfo chain2;
+            chain2.num = chaining.num;
+            chain2.type = 1;
+            chain2.mir = insn;
+            chaining.num +=1;
+            chain2.offset = curOffset + width;
+            chaining.chains.push_back(chain2);
+
+
+            traceEnd = true;
         }
         else if(opcode==OP_RETURN)
         {
@@ -2190,6 +2275,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             
         }
         else if(opcode==OP_MOVE ) {
+            ALOGD("LLVM ADDING OP_MOVE");
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
             
@@ -2202,6 +2288,42 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
             new llvm::StoreInst(OpA2, OpB1, false, block);
             new llvm::StoreInst(OpB2, OpA1, false, block);
+
+        } else if(opcode==OP_AGET) {
+            // vA = vB[vC*4];
+            ALOGD("LLVM ADDING OP_AGET");
+            ALOGD("LLVM AGET START");
+            llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+            llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
+            llvm::ConstantInt* vC = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vC));
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+            ALOGD("LLVM AGET REGS");
+            ////llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vA, "", block);
+            ////llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+            llvm::GetElementPtrInst* OpC1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vC, "", block);
+            llvm::LoadInst* OpC2 = new llvm::LoadInst(OpC1, "", false, block);
+
+            llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vB, "", block);
+            llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
+            
+            ALOGD("LLVM AGET BC");
+            llvm::ConstantInt* shift = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, 4));
+            ALOGD("LLVM AGET SHIFT");
+            llvm::BinaryOperator* Inter = llvm::BinaryOperator::Create(llvm::Instruction::Mul, OpC2, shift, "", block);
+            llvm::BinaryOperator* Pos = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpB2, Inter, "", block);
+
+         
+            ALOGD("LLVM AGET ARRAY");
+            //llvm::GetElementPtrInst* OpG1 = llvm::GetElementPtrInst::Create(OpB2, res, "", block);
+            llvm::GetElementPtrInst* OpG1 = llvm::GetElementPtrInst::Create(LoadFromRegs, Pos, "", block);
+
+            ALOGD("LLVM AGET ARRAY2");
+            llvm::LoadInst* OpG2 = new llvm::LoadInst(OpG1, "", false, block);
+
+            ////new llvm::StoreInst(OpA2, OpG2, false, block);
+            ALOGD("LLVM AGET STORE");
+             llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
+            new llvm::StoreInst(OpG2, ResultStore, false, block);
 
         }
         else

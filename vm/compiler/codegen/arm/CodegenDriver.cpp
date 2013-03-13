@@ -4602,6 +4602,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
     std::string appName2 = "com.mistagiggles.llvm.bench";
     std::string appName3 = "jp.kentarokodama.elementbenchmark.jiton";
 
+
     // Get our PID
     gDvmJit.pid = (int) getpid();
     //ALOGD("Current PID: %d", gDvmJit.pid);
@@ -4660,13 +4661,16 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
 
             desc = (JitTraceDescription *)work->info;
             ALOGD("MGD WORKING WITH %s", desc->method->name);
-            if(strcmp(desc->method->name, "addTwo")==0)
+            
+            std::string methodName = desc->method->name;
+            std::string myjitprefix = "JIT";
+            // if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
+            if(methodName.find(myjitprefix)!=std::string::npos)
             {
-                gDvmJit.printMe = true;
-                dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
-            }
-            if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
-            {
+                //ALOGD("MGD Standard Compiler");
+                //gDvmJit.printMe = true;
+                //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
+                //ALOGD("MGD Standard Compiler COMPLETE");
                 LLVMChaining chaining;
                 //LLVMChainInfo chain;
                 chaining.num = 0;
