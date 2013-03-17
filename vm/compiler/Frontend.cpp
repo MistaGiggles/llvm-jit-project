@@ -1977,8 +1977,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         u2 inst = *codePtr;
         Opcode opcode = dexOpcodeFromCodeUnit(inst);
         opcodecount[(int)opcode] += 1;
-        ALOGD("MGD LLVM TRACE : %X, %X %X %X",
-         opcode,
+        ALOGD("MGD LLVM TRACE : %s, %d %d %d",
+         dexGetOpcodeName(opcode),
         insn->dalvikInsn.vA,
         insn->dalvikInsn.vB,
         insn->dalvikInsn.vC);
@@ -2230,6 +2230,33 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
 
             traceEnd = true;
+        } else if (opcode==OP_CONST_4)// || opcode==OP_CONST_16 || opcode==OP_CONST)
+        {
+            ALOGD("LLVM BAILING ON CONST, broken");
+            return false;
+            ALOGD("LLVM ADDING CONST");
+            // regs[vA] = vB
+            llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+            
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+
+            llvm::ConstantInt* Mask  = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, 255));
+            llvm::ConstantInt* Shift = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, 4));
+
+            ///llvm::Value highBits;
+            ///llvm::Value lowBits;
+            llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vA, "", block);
+            llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+            llvm::Value* highBits = BinaryOperator::Create(Instruction::LShr, OpA2, Shift, "", block);
+            llvm::Value* lowBits = BinaryOperator::Create(Instruction::And, OpA2, Mask, "", block);
+            llvm::CastInst* Dest = new llvm::ZExtInst(lowBits, IntegerType::get(mod->getContext(), 64), "", block);
+            llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, Dest, "", block);
+
+            llvm::StoreInst(highBits, ResultStore, false, block); // Backtrace points to here for crash
+
+            //new llvm::StoreInst(vB, OpA1, false, block);
+
+
         }
         else if(opcode==OP_RETURN)
         {
@@ -2291,8 +2318,11 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
         } else if(opcode==OP_AGET) {
             // vA = vB[vC*4];
+            ALOGD("BAILING ON OP_AGET");
+            return false;
             ALOGD("LLVM ADDING OP_AGET");
             ALOGD("LLVM AGET START");
+            PointerType* PointerTy_1 = PointerType::get(IntegerType::get(mod->getContext(), 32), 0);
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
             llvm::ConstantInt* vC = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vC));
@@ -2306,30 +2336,29 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vB, "", block);
             llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
             
-            ALOGD("LLVM AGET BC");
-            llvm::ConstantInt* shift = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, 4));
-            ALOGD("LLVM AGET SHIFT");
-            llvm::BinaryOperator* Inter = llvm::BinaryOperator::Create(llvm::Instruction::Mul, OpC2, shift, "", block);
-            llvm::BinaryOperator* Pos = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpB2, Inter, "", block);
 
-         
-            ALOGD("LLVM AGET ARRAY");
-            //llvm::GetElementPtrInst* OpG1 = llvm::GetElementPtrInst::Create(OpB2, res, "", block);
-            llvm::GetElementPtrInst* OpG1 = llvm::GetElementPtrInst::Create(LoadFromRegs, Pos, "", block);
 
-            ALOGD("LLVM AGET ARRAY2");
-            llvm::LoadInst* OpG2 = new llvm::LoadInst(OpG1, "", false, block);
+            AllocaInst* ptr_arr = new AllocaInst(PointerTy_1, "arr", block);
+            ptr_arr->setAlignment(8);
+
+            GetElementPtrInst* ptr_20 = GetElementPtrInst::Create(LoadFromRegs, OpB2, "", block);
+            new StoreInst(ptr_20, ptr_arr, false, block);
+            GetElementPtrInst* ptr_25 = GetElementPtrInst::Create(ptr_20, OpC2, "", block);
+            LoadInst* Result = new LoadInst(ptr_25, "", false, block);
+
+
+
 
             ////new llvm::StoreInst(OpA2, OpG2, false, block);
             ALOGD("LLVM AGET STORE");
              llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
-            new llvm::StoreInst(OpG2, ResultStore, false, block);
+            new llvm::StoreInst(Result, ResultStore, false, block);
 
         }
         else
         {
             // unrecognised instruciton
-            ALOGD("LLVM BAILING UNKOWN OP");
+            ALOGD("LLVM BAILING UNIMPLEMENTED OP : %s", dexGetOpcodeName(opcode));
             return false;
         }
         if(traceEnd)
@@ -2354,167 +2383,171 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             } else {
                 ALOGD("LLVM VERTIFY MESSAGE: %s", verMsg.c_str());
             }
-            
-            ALOGD("LLVM ATTEMPTING TO DO LOADS OF PASSES");
-            // Add in optimizations. These were taken from a list that 'opt', LLVMs optimization tool, uses.
-            llvm::PassManager p;
-            p.add(llvm::createPromoteMemoryToRegisterPass());
-            p.add(llvm::createConstantMergePass());
-            p.add(llvm::createConstantPropagationPass());
-            p.add(llvm::createDeadArgEliminationPass());
-            p.add(llvm::createDeadCodeEliminationPass());
-            p.add(llvm::createDeadInstEliminationPass());
-            p.add(llvm::createDeadStoreEliminationPass());
-            p.add(llvm::createCFGSimplificationPass());
-            p.add(llvm::createPromoteMemoryToRegisterPass());
-            p.add(llvm::createGlobalOptimizerPass());
-            p.add(llvm::createGlobalDCEPass());
-            p.add(llvm::createFunctionInliningPass()); 
-            p.add(llvm::createDemoteRegisterToMemoryPass());
-            p.add(llvm::createGlobalOptimizerPass());
-            p.add(llvm::createGlobalsModRefPass());
-            p.add(llvm::createIPConstantPropagationPass());
-            p.add(llvm::createIPSCCPPass());
-            p.add(llvm::createIndVarSimplifyPass());
-            p.add(llvm::createInstructionCombiningPass());
-            p.add(llvm::createLCSSAPass());
-            p.add(llvm::createLICMPass());
-            p.add(llvm::createLazyValueInfoPass());
-            p.add(llvm::createLoopExtractorPass());
-            p.add(llvm::createLoopSimplifyPass());
-            p.add(llvm::createLoopStrengthReducePass());
-            p.add(llvm::createLoopUnrollPass());
-            p.add(llvm::createLoopUnswitchPass());
-            p.add(llvm::createLoopIdiomPass());
-
-            /*
-            //p.add(new llvm::TargetData(jit));
-            //p.add(llvm::createVerifierPass());
-            //p.add(llvm::createLowerSetJmpPass());
-            //p.add(llvm::createRaiseAllocationsPass());
-            p.add(llvm::createCFGSimplificationPass());
-            p.add(llvm::createPromoteMemoryToRegisterPass());
-            p.add(llvm::createGlobalOptimizerPass());
-            p.add(llvm::createGlobalDCEPass());
-            p.add(llvm::createFunctionInliningPass()); 
-
-            p.add(llvm::createAAEvalPass());
-            p.add(llvm::createAggressiveDCEPass());
-            p.add(llvm::createAliasAnalysisCounterPass());
-            p.add(llvm::createAliasDebugger());
-            p.add(llvm::createArgumentPromotionPass());
-            p.add(llvm::createBasicAliasAnalysisPass());
-            p.add(llvm::createLibCallAliasAnalysisPass(0));
-            p.add(llvm::createScalarEvolutionAliasAnalysisPass());
-            p.add(llvm::createTypeBasedAliasAnalysisPass());
-            p.add(llvm::createBlockPlacementPass());
-            p.add(llvm::createBoundsCheckingPass());
-            p.add(llvm::createBreakCriticalEdgesPass());
-           
-            p.add(llvm::createCFGSimplificationPass());
-            p.add(llvm::createConstantMergePass());
-            p.add(llvm::createConstantPropagationPass());
-            p.add(llvm::createDeadArgEliminationPass());
-            p.add(llvm::createDeadCodeEliminationPass());
-            p.add(llvm::createDeadInstEliminationPass());
-            p.add(llvm::createDeadStoreEliminationPass());
-         //   p.add(llvm::createDomOnlyPrinterPass());
-         //   p.add(llvm::createDomPrinterPass());
-            p.add(llvm::createDomOnlyViewerPass());
-            p.add(llvm::createDomViewerPass());
-            p.add(llvm::createEdgeProfilerPass());
-            p.add(llvm::createOptimalEdgeProfilerPass());
-            p.add(llvm::createPathProfilerPass());
-            p.add(llvm::createGCOVProfilerPass());
-            p.add(llvm::createFunctionInliningPass());
-            p.add(llvm::createAlwaysInlinerPass());
-            p.add(llvm::createGlobalDCEPass());
-            p.add(llvm::createGlobalOptimizerPass());
-            p.add(llvm::createGlobalsModRefPass());
-            p.add(llvm::createIPConstantPropagationPass());
-            p.add(llvm::createIPSCCPPass());
-            p.add(llvm::createIndVarSimplifyPass());
-            p.add(llvm::createInstructionCombiningPass());
-            p.add(llvm::createLCSSAPass());
-            p.add(llvm::createLICMPass());
-            p.add(llvm::createLazyValueInfoPass());
-            p.add(llvm::createLoopExtractorPass());
-            p.add(llvm::createLoopSimplifyPass());
-            p.add(llvm::createLoopStrengthReducePass());
-            p.add(llvm::createLoopUnrollPass());
-            p.add(llvm::createLoopUnswitchPass());
-            p.add(llvm::createLoopIdiomPass());
-            p.add(llvm::createLoopRotatePass());
-            p.add(llvm::createLowerExpectIntrinsicPass());
-            p.add(llvm::createLowerInvokePass());
-            p.add(llvm::createLowerSwitchPass());
-            p.add(llvm::createNoAAPass());
-            p.add(llvm::createNoProfileInfoPass());
-            p.add(llvm::createObjCARCAliasAnalysisPass());
-            p.add(llvm::createObjCARCAPElimPass());
-            p.add(llvm::createObjCARCExpandPass());
-            p.add(llvm::createObjCARCContractPass());
-            p.add(llvm::createObjCARCOptPass());
-            p.add(llvm::createProfileEstimatorPass());
-            p.add(llvm::createProfileVerifierPass());
-            p.add(llvm::createPathProfileVerifierPass());
-            p.add(llvm::createProfileLoaderPass());
-            p.add(llvm::createProfileMetadataLoaderPass());
-            p.add(llvm::createPathProfileLoaderPass());
-            p.add(llvm::createPromoteMemoryToRegisterPass());
-            p.add(llvm::createDemoteRegisterToMemoryPass());
-            p.add(llvm::createPruneEHPass());
-           // p.add(llvm::createPostDomOnlyPrinterPass());
-           // p.add(llvm::createPostDomPrinterPass());
-            p.add(llvm::createPostDomOnlyViewerPass());
-            p.add(llvm::createPostDomViewerPass());
-            p.add(llvm::createReassociatePass());
-            p.add(llvm::createRegionInfoPass());
-          //  p.add(llvm::createRegionOnlyPrinterPass());
-            p.add(llvm::createRegionOnlyViewerPass());
-          //  p.add(llvm::createRegionPrinterPass());
-
-
-          */
-            /*
-            p.add(llvm::createRegionViewerPass());
-            p.add(llvm::createSCCPPass());
-            p.add(llvm::createScalarReplAggregatesPass());
-            p.add(llvm::createSimplifyLibCallsPass());
-            p.add(llvm::createSingleLoopExtractorPass());
-            p.add(llvm::createStripSymbolsPass());
-            p.add(llvm::createStripNonDebugSymbolsPass());
-            p.add(llvm::createStripDeadDebugInfoPass());
-            p.add(llvm::createStripDeadPrototypesPass());
-            p.add(llvm::createTailCallEliminationPass());
-            p.add(llvm::createJumpThreadingPass());
-            p.add(llvm::createUnifyFunctionExitNodesPass());
-            p.add(llvm::createInstCountPass());
-            p.add(llvm::createCodeGenPreparePass());
-            p.add(llvm::createEarlyCSEPass());
-            p.add(llvm::createGVNPass());
-            p.add(llvm::createMemCpyOptPass());
-            p.add(llvm::createLoopDeletionPass());
-            p.add(llvm::createPostDomTree());
-            p.add(llvm::createInstructionNamerPass());
-            p.add(llvm::createFunctionAttrsPass());
-            p.add(llvm::createMergeFunctionsPass());
-         //   p.add(llvm::createModuleDebugInfoPrinterPass());
-            p.add(llvm::createPartialInliningPass());
-            p.add(llvm::createLintPass());
-            p.add(llvm::createSinkingPass());
-            p.add(llvm::createLowerAtomicPass());
-            p.add(llvm::createCorrelatedValuePropagationPass());
-         //   p.add(llvm::createMemDepPrinter());
-            p.add(llvm::createInstructionSimplifierPass());
-            p.add(llvm::createBBVectorizePass());
+            bool optimise = true;
+            if(optimise) {
+                ALOGD("LLVM ATTEMPTING TO DO LOADS OF PASSES");
+                // Add in optimizations. These were taken from a list that 'opt', LLVMs optimization tool, uses.
+                llvm::PassManager p;
+                p.add(llvm::createLintPass());
+                p.add(llvm::createPromoteMemoryToRegisterPass());
+                p.add(llvm::createConstantMergePass());
+                p.add(llvm::createConstantPropagationPass());
+                p.add(llvm::createDeadArgEliminationPass());
+                p.add(llvm::createDeadCodeEliminationPass());
+                p.add(llvm::createDeadInstEliminationPass());
+                p.add(llvm::createDeadStoreEliminationPass());
+                p.add(llvm::createCFGSimplificationPass());
+                p.add(llvm::createPromoteMemoryToRegisterPass());
+                p.add(llvm::createGlobalDCEPass());
+                p.add(llvm::createFunctionInliningPass()); 
+                p.add(llvm::createDemoteRegisterToMemoryPass());
+                p.add(llvm::createGlobalOptimizerPass());
+                p.add(llvm::createGlobalsModRefPass());
+                p.add(llvm::createIPConstantPropagationPass());
+                p.add(llvm::createIPSCCPPass());
+                p.add(llvm::createIndVarSimplifyPass());
+                p.add(llvm::createInstructionCombiningPass());
+                p.add(llvm::createLCSSAPass());
+                p.add(llvm::createLICMPass());
+                p.add(llvm::createLazyValueInfoPass());
+                p.add(llvm::createLoopExtractorPass());
+                p.add(llvm::createLoopSimplifyPass());
+                p.add(llvm::createLoopStrengthReducePass());
+                p.add(llvm::createLoopUnrollPass());
+                p.add(llvm::createLoopUnswitchPass());
+                p.add(llvm::createLoopIdiomPass());
 
 
 
-            */
+                /*
+                //p.add(new llvm::TargetData(jit));
+                //p.add(llvm::createVerifierPass());
+                //p.add(llvm::createLowerSetJmpPass());
+                //p.add(llvm::createRaiseAllocationsPass());
+                p.add(llvm::createCFGSimplificationPass());
+                p.add(llvm::createPromoteMemoryToRegisterPass());
+                p.add(llvm::createGlobalOptimizerPass());
+                p.add(llvm::createGlobalDCEPass());
+                p.add(llvm::createFunctionInliningPass()); 
+
+                p.add(llvm::createAAEvalPass());
+                p.add(llvm::createAggressiveDCEPass());
+                p.add(llvm::createAliasAnalysisCounterPass());
+                p.add(llvm::createAliasDebugger());
+                p.add(llvm::createArgumentPromotionPass());
+                p.add(llvm::createBasicAliasAnalysisPass());
+                p.add(llvm::createLibCallAliasAnalysisPass(0));
+                p.add(llvm::createScalarEvolutionAliasAnalysisPass());
+                p.add(llvm::createTypeBasedAliasAnalysisPass());
+                p.add(llvm::createBlockPlacementPass());
+                p.add(llvm::createBoundsCheckingPass());
+                p.add(llvm::createBreakCriticalEdgesPass());
+               
+                p.add(llvm::createCFGSimplificationPass());
+                p.add(llvm::createConstantMergePass());
+                p.add(llvm::createConstantPropagationPass());
+                p.add(llvm::createDeadArgEliminationPass());
+                p.add(llvm::createDeadCodeEliminationPass());
+                p.add(llvm::createDeadInstEliminationPass());
+                p.add(llvm::createDeadStoreEliminationPass());
+             //   p.add(llvm::createDomOnlyPrinterPass());
+             //   p.add(llvm::createDomPrinterPass());
+                p.add(llvm::createDomOnlyViewerPass());
+                p.add(llvm::createDomViewerPass());
+                p.add(llvm::createEdgeProfilerPass());
+                p.add(llvm::createOptimalEdgeProfilerPass());
+                p.add(llvm::createPathProfilerPass());
+                p.add(llvm::createGCOVProfilerPass());
+                p.add(llvm::createFunctionInliningPass());
+                p.add(llvm::createAlwaysInlinerPass());
+                p.add(llvm::createGlobalDCEPass());
+                p.add(llvm::createGlobalOptimizerPass());
+                p.add(llvm::createGlobalsModRefPass());
+                p.add(llvm::createIPConstantPropagationPass());
+                p.add(llvm::createIPSCCPPass());
+                p.add(llvm::createIndVarSimplifyPass());
+                p.add(llvm::createInstructionCombiningPass());
+                p.add(llvm::createLCSSAPass());
+                p.add(llvm::createLICMPass());
+                p.add(llvm::createLazyValueInfoPass());
+                p.add(llvm::createLoopExtractorPass());
+                p.add(llvm::createLoopSimplifyPass());
+                p.add(llvm::createLoopStrengthReducePass());
+                p.add(llvm::createLoopUnrollPass());
+                p.add(llvm::createLoopUnswitchPass());
+                p.add(llvm::createLoopIdiomPass());
+                p.add(llvm::createLoopRotatePass());
+                p.add(llvm::createLowerExpectIntrinsicPass());
+                p.add(llvm::createLowerInvokePass());
+                p.add(llvm::createLowerSwitchPass());
+                p.add(llvm::createNoAAPass());
+                p.add(llvm::createNoProfileInfoPass());
+                p.add(llvm::createObjCARCAliasAnalysisPass());
+                p.add(llvm::createObjCARCAPElimPass());
+                p.add(llvm::createObjCARCExpandPass());
+                p.add(llvm::createObjCARCContractPass());
+                p.add(llvm::createObjCARCOptPass());
+                p.add(llvm::createProfileEstimatorPass());
+                p.add(llvm::createProfileVerifierPass());
+                p.add(llvm::createPathProfileVerifierPass());
+                p.add(llvm::createProfileLoaderPass());
+                p.add(llvm::createProfileMetadataLoaderPass());
+                p.add(llvm::createPathProfileLoaderPass());
+                p.add(llvm::createPromoteMemoryToRegisterPass());
+                p.add(llvm::createDemoteRegisterToMemoryPass());
+                p.add(llvm::createPruneEHPass());
+               // p.add(llvm::createPostDomOnlyPrinterPass());
+               // p.add(llvm::createPostDomPrinterPass());
+                p.add(llvm::createPostDomOnlyViewerPass());
+                p.add(llvm::createPostDomViewerPass());
+                p.add(llvm::createReassociatePass());
+                p.add(llvm::createRegionInfoPass());
+              //  p.add(llvm::createRegionOnlyPrinterPass());
+                p.add(llvm::createRegionOnlyViewerPass());
+              //  p.add(llvm::createRegionPrinterPass());
 
 
-            p.run(*mod);
+              */
+                /*
+                p.add(llvm::createRegionViewerPass());
+                p.add(llvm::createSCCPPass());
+                p.add(llvm::createScalarReplAggregatesPass());
+                p.add(llvm::createSimplifyLibCallsPass());
+                p.add(llvm::createSingleLoopExtractorPass());
+                p.add(llvm::createStripSymbolsPass());
+                p.add(llvm::createStripNonDebugSymbolsPass());
+                p.add(llvm::createStripDeadDebugInfoPass());
+                p.add(llvm::createStripDeadPrototypesPass());
+                p.add(llvm::createTailCallEliminationPass());
+                p.add(llvm::createJumpThreadingPass());
+                p.add(llvm::createUnifyFunctionExitNodesPass());
+                p.add(llvm::createInstCountPass());
+                p.add(llvm::createCodeGenPreparePass());
+                p.add(llvm::createEarlyCSEPass());
+                p.add(llvm::createGVNPass());
+                p.add(llvm::createMemCpyOptPass());
+                p.add(llvm::createLoopDeletionPass());
+                p.add(llvm::createPostDomTree());
+                p.add(llvm::createInstructionNamerPass());
+                p.add(llvm::createFunctionAttrsPass());
+                p.add(llvm::createMergeFunctionsPass());
+             //   p.add(llvm::createModuleDebugInfoPrinterPass());
+                p.add(llvm::createPartialInliningPass());
+                
+                p.add(llvm::createSinkingPass());
+                p.add(llvm::createLowerAtomicPass());
+                p.add(llvm::createCorrelatedValuePropagationPass());
+             //   p.add(llvm::createMemDepPrinter());
+                p.add(llvm::createInstructionSimplifierPass());
+                p.add(llvm::createBBVectorizePass());
+
+
+
+                */
+
+
+                p.run(*mod);
+            }
            
             ALOGD("LLVM OUTPUT IR AFTER OPTIMISATION ====================================");
             llvm::PassManager PMa;
