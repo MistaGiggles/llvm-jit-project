@@ -23,7 +23,7 @@
  * which combines this common code with specific support found in the
  * applicable directory below this one.
  */
-
+#include <ctime>
 /*
  * Mark garbage collection card. Skip if the value we're storing is null.
  */
@@ -4593,16 +4593,20 @@ gen_fallthrough:
  */
 bool dvmCompilerDoWork(CompilerWorkOrder *work)
 {
+    time_t begin, end;
+    time(&begin);
     JitTraceDescription *desc;
     bool isCompile = false;
     bool success = false;
+    bool totime = false;
 
+    bool debugprint = false;
 
     std::string appName1 = "jp.kentarokodama.elementbenchmark.jitonroot";
     std::string appName2 = "com.mistagiggles.llvm.bench";
     std::string appName3 = "jp.kentarokodama.elementbenchmark.jiton";
 
-
+    desc = (JitTraceDescription *)work->info;
     // Get our PID
     gDvmJit.pid = (int) getpid();
     //ALOGD("Current PID: %d", gDvmJit.pid);
@@ -4615,16 +4619,23 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
     fgets(gDvmJit.appName, sizeof(gDvmJit.appName), cmdlineFileHandle);
     fclose(cmdlineFileHandle);
     //ALOGD("LLVM - %s", gDvmJit.appName);
-    if ((strcmp(gDvmJit.appName, appName1.c_str()) == 0) || (strcmp(gDvmJit.appName, appName2.c_str()) == 0) || (strcmp(gDvmJit.appName, appName3.c_str()) == 0) ){
+    if ((strcmp(gDvmJit.appName, appName1.c_str()) == 0) || (strcmp(gDvmJit.appName, appName2.c_str()) == 0) || (strcmp(gDvmJit.appName, appName3.c_str()) == 0) )
+    {
             //ALOGD("LLVM JIT - Found application for custom jit - kind: %d should be %d", work->kind, kWorkOrderTrace);
             if(work->kind==kWorkOrderTrace)
             {
-                //ALOGD("Was able to change worktype");
-                work->kind = kWorkOrderTraceLLVM;
+                std::string methodName1 = desc->method->name;
+                std::string myjitprefix1 = "JIT";
+            // if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
+                if(methodName1.find(myjitprefix1)!=std::string::npos) {
+                    //ALOGD("Was able to change worktype");
+                    work->kind = kWorkOrderTraceLLVM;
+                }
+		          totime = true;
             } else {
                 // =============================================== STOP
-
-                return false;
+                //return false;
+               
             }
     }
 
@@ -4638,16 +4649,20 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
         case kWorkOrderTrace:
             isCompile = true;
             /* Start compilation with maximally allowed trace length */
-            desc = (JitTraceDescription *)work->info;
+            //desc = (JitTraceDescription *)work->info;
             success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
                                         work->bailPtr, 0 /* no hints */);
+	    if(success && totime) {
+            time(&end);
+            ALOGD("LLVM NOJIT Trace %s took %f time to compile", desc->method->name, difftime(end,begin));
+		}
             break;
         case kWorkOrderTraceDebug: {
             bool oldPrintMe = gDvmJit.printMe;
             gDvmJit.printMe = true;
             isCompile = true;
             /* Start compilation with maximally allowed trace length */
-            desc = (JitTraceDescription *)work->info;
+            //desc = (JitTraceDescription *)work->info;
             success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
                                         work->bailPtr, 0 /* no hints */);
             gDvmJit.printMe = oldPrintMe;
@@ -4659,7 +4674,8 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             break;
         case kWorkOrderTraceLLVM: {
 
-            desc = (JitTraceDescription *)work->info;
+            
+            if(debugprint)
             ALOGD("MGD WORKING WITH %s", desc->method->name);
             
             std::string methodName = desc->method->name;
@@ -4667,13 +4683,14 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             // if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
             if(methodName.find(myjitprefix)!=std::string::npos)
             {
+                totime = true;
                 //ALOGD("MGD Standard Compiler");
                 //gDvmJit.printMe = true;
                 //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
                 //ALOGD("MGD Standard Compiler COMPLETE");
                 LLVMChaining chaining;
                 //LLVMChainInfo chain;
-                chaining.num = 0;
+                chaining.num = 1;
                 //chaining.chains.push_back(chain);
                 //dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr, 0 /* no hints */);
                 success = dvmLLVMCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result, work->bailPtr,0, chaining);
@@ -4682,7 +4699,9 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     CompilationUnit stub;
                     
                     JitTranslationInfo* myinfo = new JitTranslationInfo;
+                    if(debugprint)
                     ALOGD("Attempting to compile stub trace");
+                    if(debugprint)
                     ALOGD("APPNAME: %s : method : %s ", gDvmJit.appName, desc->method->name);
                     setupStubUnit(&stub);
                     stub.traceDesc=desc;
@@ -4691,11 +4710,13 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     appendChains(&stub, chaining);
                     myinfo->instructionSet = stub.instructionSet;
                     myinfo->profileCodeSize = 0;
-                    if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
-                    if(stub.chainingCellBottom==NULL) ALOGD("Bottom chaining cell null");
-                    if(stub.chainCellOffsetLIR==NULL) ALOGD("Chain cell offset is null");
-                    if(stub.classPointerList==NULL) ALOGD("classPointerList is null");
-                    if(stub.literalList==NULL) ALOGD("literalList is null");
+                    if(debugprint) {
+                        if(stub.firstLIRInsn==NULL) ALOGD("MGD First instruction null");
+                        if(stub.chainingCellBottom==NULL) ALOGD("Bottom chaining cell null");
+                        if(stub.chainCellOffsetLIR==NULL) ALOGD("Chain cell offset is null");
+                        if(stub.classPointerList==NULL) ALOGD("classPointerList is null");
+                        if(stub.literalList==NULL) ALOGD("literalList is null");
+                    }
                     stub.chainingCellBottom = (LIR *) newLIR0(&stub, kArmChainingCellBottom);
                     stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
                    	myinfo->cacheVersion = gDvmJit.cacheVersion;
@@ -4703,39 +4724,54 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     //stub.printMe = true;
             		if(myinfo->instructionSet==DALVIK_JIT_THUMB2)
             		{
+                        if(debugprint)
             			ALOGD("MGD THUMB2 INSTRUCTION SET");
             		}
                     //ALOGD("MGD+ ================================");
                     //dvmCompilerCodegenDump(&stub);
+                    if(debugprint)
                     ALOGD("MGD- ================================");
                     dvmCompilerAssembleLIR(&stub, (JitTranslationInfo*)myinfo);
+                    if(debugprint)
                     ALOGD("MGD+ ================================");
+                    if(debugprint)
                     dvmCompilerCodegenDump(&stub);
+                    if(debugprint)
                     ALOGD("MGD- ================================");
+                    if(debugprint)
                     ALOGD("MGD CodeSize: %d", stub.totalSize);
                     if(stub.assemblerStatus==kSuccess)
                     {
                         isCompile = true;
                         success = true;
                         ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL addr: %X insn %X", (int)myinfo->codeAddress ,*((short*)myinfo->codeAddress));
-                    } else ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
+            			if(totime) {
+            				time(&end);
+            				ALOGD("LLVM JIT Trace %s took %f time to compile", desc->method->name, difftime(end, begin));
+            			}
+                    } else if(debugprint) ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
                     work->result.profileCodeSize = stub.totalSize;
                     work->result.codeAddress=myinfo->codeAddress;
                     if(myinfo->codeAddress==NULL)
                     {
+                        if(debugprint)
                         ALOGD("codeAddress is null");
                         isCompile = false;
                         success = false;
                     }
                     //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
                     //                            work->bailPtr, 0 /* no hints */);
-                    
+                    if(debugprint)
                     ALOGD("Done stub trace");
                 } else {
                     isCompile = false;
+                    //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,  work->bailPtr, 0 /* no hints */);
+                    //isCompile = true;
                 }
             } else 
             {
+
+                //ALOGD("LLVM DID NOT COMPILE %s", desc->method->name);
                 isCompile = false;
                 success = false;
             }
@@ -4749,6 +4785,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
     }
     if (!success)
         work->result.codeAddress = NULL;
+    
     return isCompile;
 }
 

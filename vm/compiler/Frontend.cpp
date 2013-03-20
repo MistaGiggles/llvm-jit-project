@@ -1921,6 +1921,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
   ALOGD("Assembly call result: %d , %d",asmres, asmres2);
     */
     const bool useBlocks = true;
+    //const bool debugprint = true;
     
     LLVMInsns* blockList = new LLVMInsns();
     blockList->Init();
@@ -1978,18 +1979,13 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         Opcode opcode = dexOpcodeFromCodeUnit(inst);
         opcodecount[(int)opcode] += 1;
         ALOGD("MGD LLVM TRACE : %s, %d %d %d",
-         dexGetOpcodeName(opcode),
-        insn->dalvikInsn.vA,
-        insn->dalvikInsn.vB,
-        insn->dalvikInsn.vC);
-        if(opcode == 242) {
-            long val = desc->method->insns[
-                desc->method->registerMap->data[insn->dalvikInsn.vB] +
-                 desc->method->registerMap->data[insn->dalvikInsn.vC]];
-            ALOGD("MGD IGET VALUE : %ld", val);
-        }
+                                 dexGetOpcodeName(opcode),
+                                insn->dalvikInsn.vA,
+                                insn->dalvikInsn.vB,
+                                insn->dalvikInsn.vC);
         
-        if(opcode==OP_ADD_INT || opcode==OP_SUB_INT || opcode==OP_MUL_INT)
+        
+        if(opcode==OP_ADD_INT || opcode==OP_SUB_INT || opcode==OP_MUL_INT )
         {
             if(useBlocks) {
                 blockList = blockList->add(block);
@@ -2026,7 +2022,46 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             
 
 
-        } else if(opcode==OP_ADD_INT_2ADDR || opcode==OP_SUB_INT_2ADDR || opcode==OP_MUL_INT_2ADDR)
+        } else if (opcode==OP_NOP)
+        {
+
+        }
+         else if(opcode==OP_ADD_INT_LIT8  || opcode==OP_MUL_INT_LIT8 )
+        {
+            if(useBlocks) {
+                blockList = blockList->add(block);
+                block2 =  llvm::BasicBlock::Create(mod->getContext(), "INT_LIT8", jitfunc,0);
+                llvm::BranchInst::Create(block2, block);
+                block = block2;
+            }
+
+            llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+            llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
+            llvm::ConstantInt* vC = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vC));
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+            llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vB, "", block);
+            llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
+            //llvm::GetElementPtrInst* OpB1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vC, "", block);
+            //llvm::LoadInst* OpB2 = new llvm::LoadInst(OpB1, "", false, block);
+            //llvm::BinaryOperator* Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, OpB2, "", block);
+            llvm::BinaryOperator* Result = NULL;
+            if(opcode == OP_ADD_INT_LIT8)
+                    Result = llvm::BinaryOperator::Create(llvm::Instruction::Add, OpA2, vC, "", block);
+                  
+
+
+            if(opcode ==  OP_MUL_INT_LIT8)
+                    Result = llvm::BinaryOperator::Create(llvm::Instruction::Mul, OpA2, vC, "", block);
+         
+                     
+            llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
+            new llvm::StoreInst(Result, ResultStore, false, block);
+
+            
+
+
+        }
+         else if(opcode==OP_ADD_INT_2ADDR || opcode==OP_SUB_INT_2ADDR || opcode==OP_MUL_INT_2ADDR)
         {
             if(useBlocks) {
                 blockList = blockList->add(block);
@@ -2079,7 +2114,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             chain.type = 1;
             chain.mir = insn;
             chaining.num+=1;
-            chain.offset =  insn->dalvikInsn.vB + curOffset;
+            chain.offset =  2*insn->dalvikInsn.vB + curOffset;
             llvm::ConstantInt* TrueChain = llvm::ConstantInt::get(mod->getContext(), APInt(32, chain.num));
             llvm::ConstantInt* FalseChain = llvm::ConstantInt::get(mod->getContext(), APInt(32, chain.num+1));
             //ALOGD("LLVM IF DEBUG: INTS");
@@ -2161,7 +2196,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             chain.type = 1;
             chain.mir = insn;
             chaining.num+=1;
-            chain.offset =  insn->dalvikInsn.vC + curOffset;
+            chain.offset =  2*insn->dalvikInsn.vC + curOffset;
             llvm::ConstantInt* TrueChain = llvm::ConstantInt::get(mod->getContext(), APInt(32, chain.num));
             llvm::ConstantInt* FalseChain = llvm::ConstantInt::get(mod->getContext(), APInt(32, chain.num+1));
             //ALOGD("LLVM IF DEBUG: INTS");
@@ -2234,7 +2269,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         {
             ALOGD("LLVM BAILING ON CONST, broken");
             return false;
-            ALOGD("LLVM ADDING CONST");
+            
+            ALOGD("LLVM ADDING CONST_4");
             // regs[vA] = vB
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             
@@ -2254,6 +2290,21 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
             llvm::StoreInst(highBits, ResultStore, false, block); // Backtrace points to here for crash
 
+            //new llvm::StoreInst(vB, OpA1, false, block);
+
+
+        } else if (opcode==OP_CONST_16 )// || opcode==OP_CONST_16 || opcode==OP_CONST)
+        {
+            
+            ALOGD("LLVM ADDING CONST");
+            // regs[vA] = vB
+            llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
+            llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
+            
+            llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
+
+            llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
+            new llvm::StoreInst(vB, ResultStore, false, block);
             //new llvm::StoreInst(vB, OpA1, false, block);
 
 
@@ -2284,7 +2335,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             chain.type = 2;
             chain.mir = insn;
             chaining.num+=1;
-            chain.offset = insn->dalvikInsn.vA;
+            chain.offset = insn->dalvikInsn.vA*2 + curOffset;
             chaining.chains.push_back(chain);
             llvm::ConstantInt* toChain = ConstantInt::get(mod->getContext(), APInt(32, chain.num));
             llvm::ReturnInst::Create(mod->getContext(), toChain, block);
@@ -2365,6 +2416,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         {
             llvm::PassManager PM;
             std::string msg;
+
             ALOGD("LLVM DEBUG: PRINTING");
             llvm::raw_string_ostream mystream(msg);
             PM.add(llvm::createPrintModulePass(&mystream));
