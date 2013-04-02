@@ -4593,8 +4593,8 @@ gen_fallthrough:
  */
 bool dvmCompilerDoWork(CompilerWorkOrder *work)
 {
-    time_t begin, end;
-    time(&begin);
+    time_t t1, t2;
+    t1 = clock();
     JitTraceDescription *desc;
     bool isCompile = false;
     bool success = false;
@@ -4626,12 +4626,21 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             {
                 std::string methodName1 = desc->method->name;
                 std::string myjitprefix1 = "JIT";
+                std::string myjitprefix2 = "Std";
             // if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
                 if(methodName1.find(myjitprefix1)!=std::string::npos) {
                     //ALOGD("Was able to change worktype");
                     work->kind = kWorkOrderTraceLLVM;
+                } else if(methodName1.find(myjitprefix2)!=std::string::npos) {
+                    totime = true;
                 }
-		          totime = true;
+                 else {
+                    std::string dont = "Slow";
+                    if(methodName1.find(dont)!=std::string::npos) {
+                        return false;
+                    }
+                }
+		          
             } else {
                 // =============================================== STOP
                 //return false;
@@ -4653,8 +4662,10 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,
                                         work->bailPtr, 0 /* no hints */);
 	    if(success && totime) {
-            time(&end);
-            ALOGD("LLVM NOJIT Trace %s took %f time to compile", desc->method->name, difftime(end,begin));
+            t2 = clock();
+            float diff = (((float)t2 - (float)t1) / 1000000.0F ) * 1000;   
+            ALOGD("LLVM BENCH NOJIT Trace %s at %d took %f time to compile", desc->method->name,(int)work->pc ,diff);
+
 		}
             break;
         case kWorkOrderTraceDebug: {
@@ -4675,8 +4686,8 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
         case kWorkOrderTraceLLVM: {
 
             
-            if(debugprint)
-            ALOGD("MGD WORKING WITH %s", desc->method->name);
+            
+            //ALOGD("MGD WORKING WITH %s", desc->method->name);
             
             std::string methodName = desc->method->name;
             std::string myjitprefix = "JIT";
@@ -4721,7 +4732,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     stub.chainCellOffsetLIR = (LIR *) newLIR1(&stub, kArm16BitData, CHAIN_CELL_OFFSET_TAG);
                    	myinfo->cacheVersion = gDvmJit.cacheVersion;
             		myinfo->discardResult = false; 
-                    //stub.printMe = true;
+                    stub.printMe = false;
             		if(myinfo->instructionSet==DALVIK_JIT_THUMB2)
             		{
                         if(debugprint)
@@ -4738,16 +4749,18 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     dvmCompilerCodegenDump(&stub);
                     if(debugprint)
                     ALOGD("MGD- ================================");
-                    if(debugprint)
-                    ALOGD("MGD CodeSize: %d", stub.totalSize);
+                    
+                    ALOGD("LLVM BENCH STUB CodeSize: %d", stub.totalSize);
                     if(stub.assemblerStatus==kSuccess)
                     {
                         isCompile = true;
                         success = true;
+                        totime = true;
                         ALOGD("MGD STUB TRACE COMPILATION SUCCESSFUL addr: %X insn %X", (int)myinfo->codeAddress ,*((short*)myinfo->codeAddress));
             			if(totime) {
-            				time(&end);
-            				ALOGD("LLVM JIT Trace %s took %f time to compile", desc->method->name, difftime(end, begin));
+            				t2 = clock();
+                            float diff = (((float)t2 - (float)t1) / 1000000.0F ) * 1000;   
+            				ALOGD("LLVM BENCH JIT Trace %s at %d took %f time to compile", desc->method->name,(int)work->pc ,diff);
             			}
                     } else if(debugprint) ALOGD("MGD ERROR STUB TRACE COMPILATION FAILED!");
                     work->result.profileCodeSize = stub.totalSize;
@@ -4764,9 +4777,15 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     if(debugprint)
                     ALOGD("Done stub trace");
                 } else {
-                    isCompile = false;
-                    //success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,  work->bailPtr, 0 /* no hints */);
-                    //isCompile = true;
+                    //isCompile = false;
+                    success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,  work->bailPtr, 0 /* no hints */);
+
+                    isCompile = true;
+                    if(totime) {
+                            t2 = clock();
+                            float diff = (((float)t2 - (float)t1) / 1000000.0F ) * 1000;   
+                            ALOGD("LLVM BENCH JIT Trace %s at %d took %f time to compile", desc->method->name,(int)work->pc ,diff);
+                    }
                 }
             } else 
             {
@@ -4957,25 +4976,25 @@ void appendChains(CompilationUnit* cUnit, LLVMChaining& chaining)
     for(unsigned int i = 0; i < chaining.chains.size(); i++)
     {
         if( (signed int)i != chaining.chains[i].num) {
-            ALOGD("CGD Chaining blocks are misaligned %d %d", i, chaining.chains[i].num);
+            //ALOGD("CGD Chaining blocks are misaligned %d %d", i, chaining.chains[i].num);
         }
-        if(chaining.chains[i].type == 1 && (signed int)i == chaining.chains[i].num) 
+        if(chaining.chains[i].type == 1)// && (signed int)i == chaining.chains[i].num) 
         {
             //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
             opRegImm(cUnit,kOpCmp, r0, chaining.chains[i].num );
             ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
             branches[chaining.chains[i].num] = branch;
-            ALOGD("CGD Chaining Cell Number: %d branches to offset %d TYPE IF", chaining.chains[i].num, chaining.chains[i].offset);
+           // ALOGD("CGD %d Chaining Cell Number: %d branches to offset %d TYPE IF",i, chaining.chains[i].num, chaining.chains[i].offset);
 
         }
 
-        if(chaining.chains[i].type == 2 && (signed int)i == chaining.chains[i].num) 
+        if(chaining.chains[i].type == 2)// && (signed int)i == chaining.chains[i].num) 
         {
             //ArmLIR* branch = genCmpImmBranch(cUnit,kThumbCmpRI8 ,r0, chaining.chains[i].num);
             opRegImm(cUnit,kOpCmp, r0, chaining.chains[i].num );
             ArmLIR* branch = genConditionalBranch(cUnit, kArmCondEq, NULL);
             branches[chaining.chains[i].num] = branch;
-            ALOGD("CGD Chaining Cell Number: %d branches to offset %d TYPE GOTO", chaining.chains[i].num, chaining.chains[i].offset);
+           // ALOGD("CGD %d Chaining Cell Number: %d branches to offset %d TYPE GOTO",i,  chaining.chains[i].num, chaining.chains[i].offset);
 
         }
         
@@ -4983,14 +5002,14 @@ void appendChains(CompilationUnit* cUnit, LLVMChaining& chaining)
 
     for(unsigned int i = 0; i < chaining.chains.size(); i++)
     {
-        if(chaining.chains[i].type == 1 && (signed int)i == chaining.chains[i].num) {
+        if(chaining.chains[i].type == 1){// && (signed int)i == chaining.chains[i].num) {
             ArmLIR* to = handleNormalChainingCell(cUnit, chaining.chains[i].offset);
             branches[chaining.chains[i].num]->generic.target =(LIR*) to;
         } else if(chaining.chains[i].type == 2) {
             ArmLIR* to = handleNormalChainingCell(cUnit, chaining.chains[i].offset);
             branches[chaining.chains[i].num]->generic.target =(LIR*) to;
             
-        } else if(chaining.chains[i].type == 0 && (signed int)i == chaining.chains[i].num) {
+        } else if(chaining.chains[i].type == 0){// && (signed int)i == chaining.chains[i].num) {
             genReturnCommon(cUnit, chaining.chains[i].mir);
         }
     }

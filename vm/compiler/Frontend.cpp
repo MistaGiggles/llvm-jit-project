@@ -87,6 +87,8 @@
 #include "llvm/Assembly/PrintModulePass.h"
 #include "llvm/LinkAllPasses.h"
 
+#include "llvm/CodeGen/MachineCodeInfo.h"
+
 
 extern "C" void dvmJitCalleeSave(double *saveArea);
 extern "C" void dvmJitCalleeRestore(double *saveArea);
@@ -1786,6 +1788,9 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 {
 
     using namespace llvm;
+
+        const bool debugprint = false;
+
     /////llvm::InitializeNativeTarget();
     //if(JitIsHere()){
             //ALOGD("LLVM - Entered my own JIT function");
@@ -1793,12 +1798,10 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     //info->codeAddress =(void*) (*runOtherTest);
     //ALOGD("MGD RETURNING STUFF");
     //return true;
-    if(1 > 0) // traceprint
+    if(debugprint) // traceprint
         ALOGD("MGD LLVM TRACE HEAD %s : %s : %s", desc->method->name, desc->method->clazz->descriptor, desc->method->clazz->sourceFile);
     //ALOGD("MGD REGDATA DUMP: entry numbers: %d %d, FP: %X", desc->method->registerMap->numEntries[0], desc->method->registerMap->numEntries[1], *desc->method->insns);
-    for(int regi = 0; regi < desc->method->registerMap->numEntries[0]; regi++){
-        //ALOGD("MGD REGDATA %d : %X",regi, desc->method->registerMap->data[regi]);
-    }
+    
 
 
     
@@ -1921,7 +1924,6 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
   ALOGD("Assembly call result: %d , %d",asmres, asmres2);
     */
     const bool useBlocks = true;
-    //const bool debugprint = true;
     
     LLVMInsns* blockList = new LLVMInsns();
     blockList->Init();
@@ -1978,6 +1980,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         u2 inst = *codePtr;
         Opcode opcode = dexOpcodeFromCodeUnit(inst);
         opcodecount[(int)opcode] += 1;
+        if(debugprint)
         ALOGD("MGD LLVM TRACE : %s, %d %d %d",
                                  dexGetOpcodeName(opcode),
                                 insn->dalvikInsn.vA,
@@ -2070,7 +2073,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 block = block2;
             }
             // Adds, subs or mulls vA with vB
-            ALOGD("LLVM ADDING 2ADDR instruction");
+            if(debugprint) ALOGD("LLVM ADDING 2ADDR instruction");
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
             
@@ -2106,7 +2109,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 llvm::BranchInst::Create(block2, block);
                 block = block2;
             }
-            ALOGD("LLVM ADDING IF-Z STATEMENT");
+            if(debugprint) ALOGD("LLVM ADDING IF-Z STATEMENT");
 
             // True Chaining Cell
             LLVMChainInfo chain;
@@ -2151,7 +2154,6 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             else if(opcode==OP_IF_LEZ) {
                 comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SLE, OpA2, constZero, "IF_LEZ");
             }    
-            ALOGD("LLVM IF DEBUG: BRANCHES");
             llvm::BranchInst::Create(TrueBranch, FalseBranch, comparison, block);
 
             // TrueBranch
@@ -2162,11 +2164,9 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             // FalseBranch
             new llvm::StoreInst(FalseChain, rtnValue, false, FalseBranch);
             llvm::ReturnInst::Create(mod->getContext(), FalseChain, FalseBranch);
-            ALOGD("LLVM IF DEBUG: BLOCKLIST");
             
             chaining.chains.push_back(chain);
 
-            ALOGD("LLVM IF DEBUG: CHAINING");
             // False chaining cell
             LLVMChainInfo chain2;
             chain2.num = chaining.num;
@@ -2188,7 +2188,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 llvm::BranchInst::Create(block2, block);
                 block = block2;
             }
-            ALOGD("LLVM ADDING IF STATEMENT");
+            if(debugprint) ALOGD("LLVM ADDING IF STATEMENT");
 
             // True Chaining Cell
             LLVMChainInfo chain;
@@ -2238,7 +2238,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             else if(opcode==OP_IF_LE) {
                 comparison = new llvm::ICmpInst(*block, llvm::ICmpInst::ICMP_SLE, OpA2, OpB2, "IF_LE");
             }    
-            ALOGD("LLVM IF DEBUG: BRANCHES");
+            //ALOGD("LLVM IF DEBUG: BRANCHES");
             llvm::BranchInst::Create(TrueBranch, FalseBranch, comparison, block);
 
             // TrueBranch
@@ -2249,11 +2249,11 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             // FalseBranch
             new llvm::StoreInst(FalseChain, rtnValue, false, FalseBranch);
             llvm::ReturnInst::Create(mod->getContext(), FalseChain, FalseBranch);
-            ALOGD("LLVM IF DEBUG: BLOCKLIST");
+            //ALOGD("LLVM IF DEBUG: BLOCKLIST");
             
             chaining.chains.push_back(chain);
 
-            ALOGD("LLVM IF DEBUG: CHAINING");
+            //ALOGD("LLVM IF DEBUG: CHAINING");
             // False chaining cell
             LLVMChainInfo chain2;
             chain2.num = chaining.num;
@@ -2267,10 +2267,10 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             traceEnd = true;
         } else if (opcode==OP_CONST_4)// || opcode==OP_CONST_16 || opcode==OP_CONST)
         {
-            ALOGD("LLVM BAILING ON CONST, broken");
+            if(debugprint) ALOGD("LLVM BAILING ON CONST, broken");
             return false;
             
-            ALOGD("LLVM ADDING CONST_4");
+            if(debugprint) ALOGD("LLVM ADDING CONST_4");
             // regs[vA] = vB
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             
@@ -2295,8 +2295,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
         } else if (opcode==OP_CONST_16 )// || opcode==OP_CONST_16 || opcode==OP_CONST)
         {
-            
-            ALOGD("LLVM ADDING CONST");
+            //return false;
+            if(debugprint) ALOGD("LLVM ADDING CONST");
             // regs[vA] = vB
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
@@ -2311,7 +2311,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         }
         else if(opcode==OP_RETURN)
         {
-            ALOGD("LLVM ADDING RETURN");
+
+            if(debugprint) ALOGD("LLVM ADDING RETURN");
             LLVMChainInfo chain;
             chain.num = chaining.num;
             chain.type = 0;
@@ -2320,26 +2321,26 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             llvm::ConstantInt* toChain = ConstantInt::get(mod->getContext(), APInt(32, chain.num));
             llvm::ReturnInst::Create(mod->getContext(), toChain, block);
             chaining.chains.push_back(chain);
-            ALOGD("LLVM RETURN DEBUG: BLOCKLIST");
+            if(debugprint) ALOGD("LLVM RETURN DEBUG: BLOCKLIST");
             //blockList = blockList->add(block);
             //block2 =  llvm::BasicBlock::Create(mod->getContext(), "RETURN", jitfunc,0);
             //llvm::BranchInst::Create(block2, block);
             //block = block2;
-            ALOGD("LLVM RETURN DEBUG: DONE");
+            if(debugprint) ALOGD("LLVM RETURN DEBUG: DONE");
             traceEnd =  true;
         }
         else if (opcode==OP_GOTO) {
-            ALOGD("LLVM ADDING GOTO");
+            return false;
+            if(debugprint) ALOGD("LLVM ADDING GOTO");
             LLVMChainInfo chain;
             chain.num = chaining.num;
             chain.type = 2;
             chain.mir = insn;
             chaining.num+=1;
-            chain.offset = insn->dalvikInsn.vA*2 + curOffset;
+            chain.offset = insn->dalvikInsn.vA*2 + curOffset - 2;
             chaining.chains.push_back(chain);
             llvm::ConstantInt* toChain = ConstantInt::get(mod->getContext(), APInt(32, chain.num));
             llvm::ReturnInst::Create(mod->getContext(), toChain, block);
-            chaining.chains.push_back(chain);
             traceEnd = true;
 
             //blockList = blockList->add(block);
@@ -2353,7 +2354,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             
         }
         else if(opcode==OP_MOVE ) {
-            ALOGD("LLVM ADDING OP_MOVE");
+            if(debugprint) ALOGD("LLVM ADDING OP_MOVE");
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
             
@@ -2369,16 +2370,16 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
         } else if(opcode==OP_AGET) {
             // vA = vB[vC*4];
-            ALOGD("BAILING ON OP_AGET");
+            if(debugprint) ALOGD("BAILING ON OP_AGET");
             return false;
-            ALOGD("LLVM ADDING OP_AGET");
-            ALOGD("LLVM AGET START");
+            //ALOGD("LLVM ADDING OP_AGET");
+            //ALOGD("LLVM AGET START");
             PointerType* PointerTy_1 = PointerType::get(IntegerType::get(mod->getContext(), 32), 0);
             llvm::ConstantInt* vA = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vA));
             llvm::ConstantInt* vB = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vB));
             llvm::ConstantInt* vC = llvm::ConstantInt::get(mod->getContext(), llvm::APInt(32, insn->dalvikInsn.vC));
             llvm::LoadInst* LoadFromRegs = new llvm::LoadInst(LLVMStack,"",  false, block);
-            ALOGD("LLVM AGET REGS");
+           // ALOGD("LLVM AGET REGS");
             ////llvm::GetElementPtrInst* OpA1 = llvm::GetElementPtrInst::Create(LoadFromRegs,vA, "", block);
             ////llvm::LoadInst* OpA2 = new llvm::LoadInst(OpA1, "", false, block);
             llvm::GetElementPtrInst* OpC1 = llvm::GetElementPtrInst::Create(LoadFromRegs, vC, "", block);
@@ -2401,7 +2402,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
 
 
             ////new llvm::StoreInst(OpA2, OpG2, false, block);
-            ALOGD("LLVM AGET STORE");
+            //ALOGD("LLVM AGET STORE");
              llvm::GetElementPtrInst* ResultStore = llvm::GetElementPtrInst::Create(LoadFromRegs, vA, "", block);
             new llvm::StoreInst(Result, ResultStore, false, block);
 
@@ -2409,7 +2410,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
         else
         {
             // unrecognised instruciton
-            ALOGD("LLVM BAILING UNIMPLEMENTED OP : %s", dexGetOpcodeName(opcode));
+            if(debugprint) ALOGD("LLVM BAILING UNIMPLEMENTED OP : %s", dexGetOpcodeName(opcode));
             return false;
         }
         if(traceEnd)
@@ -2417,27 +2418,27 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             llvm::PassManager PM;
             std::string msg;
 
-            ALOGD("LLVM DEBUG: PRINTING");
+            if(debugprint) ALOGD("LLVM DEBUG: PRINTING");
             llvm::raw_string_ostream mystream(msg);
             PM.add(llvm::createPrintModulePass(&mystream));
             PM.run(*mod);
             std::istringstream stream(msg);
             std::string line;
-            ALOGD("LLVM OUTPUT IR BEFORE OPTIMISATION ====================================");
+            if(debugprint) ALOGD("LLVM OUTPUT IR BEFORE OPTIMISATION ====================================");
             while(std::getline(stream, line)) {
-                ALOGD("%s", line.c_str());
+                if(debugprint) ALOGD("%s", line.c_str());
             }
                             //ALOGD("LLVM OUTPUT : %s", msg.c_str());
             std::string verMsg;
-            ALOGD("LLVM DEBUG: Verify");
+            if(debugprint) ALOGD("LLVM DEBUG: Verify");
             if(llvm::verifyModule(*mod, llvm::PrintMessageAction, &verMsg)) {
-                ALOGD("LLVM INVALID MODULE: %s", verMsg.c_str());
+                if(debugprint) ALOGD("LLVM INVALID MODULE: %s", verMsg.c_str());
             } else {
-                ALOGD("LLVM VERTIFY MESSAGE: %s", verMsg.c_str());
+                if(debugprint) ALOGD("LLVM VERTIFY MESSAGE: %s", verMsg.c_str());
             }
             bool optimise = true;
             if(optimise) {
-                ALOGD("LLVM ATTEMPTING TO DO LOADS OF PASSES");
+                if(debugprint) ALOGD("LLVM ATTEMPTING TO DO LOADS OF PASSES");
                 // Add in optimizations. These were taken from a list that 'opt', LLVMs optimization tool, uses.
                 llvm::PassManager p;
                 p.add(llvm::createLintPass());
@@ -2451,12 +2452,12 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 p.add(llvm::createCFGSimplificationPass());
                 p.add(llvm::createPromoteMemoryToRegisterPass());
                 p.add(llvm::createGlobalDCEPass());
-                p.add(llvm::createFunctionInliningPass()); 
-                p.add(llvm::createDemoteRegisterToMemoryPass());
+                //p.add(llvm::createFunctionInliningPass()); 
+                //p.add(llvm::createDemoteRegisterToMemoryPass());
                 p.add(llvm::createGlobalOptimizerPass());
                 p.add(llvm::createGlobalsModRefPass());
                 p.add(llvm::createIPConstantPropagationPass());
-                p.add(llvm::createIPSCCPPass());
+                //p.add(llvm::createIPSCCPPass());
                 p.add(llvm::createIndVarSimplifyPass());
                 p.add(llvm::createInstructionCombiningPass());
                 p.add(llvm::createLCSSAPass());
@@ -2601,7 +2602,7 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
                 p.run(*mod);
             }
            
-            ALOGD("LLVM OUTPUT IR AFTER OPTIMISATION ====================================");
+            if(debugprint) ALOGD("LLVM OUTPUT IR AFTER OPTIMISATION ====================================");
             llvm::PassManager PMa;
             std::string msga;
             llvm::raw_string_ostream mystreama(msga);
@@ -2609,21 +2610,24 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             PMa.run(*mod);
             std::istringstream streama(msga);
             std::string linea;
-            ALOGD("LLVM OUTPUT IR");
+            if(debugprint) ALOGD("LLVM OUTPUT IR");
             while(std::getline(streama, linea)) {
-                ALOGD("%s", linea.c_str());
+                if(debugprint) ALOGD("%s", linea.c_str());
             }
 
             //ALOGD("LLVM : %s", mystream.str().c_str());
 
             std::string errStr;
             llvm::ExecutionEngine* ee = llvm::EngineBuilder(mod).setErrorStr(&errStr).create();
-            ALOGD("LLVM Compiler - %s",errStr.c_str());
+            if(debugprint) ALOGD("LLVM Compiler - %s",errStr.c_str());
             //ALOGD("LLVM COMPILER chain to: %d", insn->dalvikInsn.vB + curOffset);
             llvm::Function* rtn = ee->FindFunctionNamed("jitFunc");
-            ALOGD("LLVM COMPILER GOT FUNCTION");
+            if(debugprint) ALOGD("LLVM COMPILER GOT FUNCTION");
+            llvm::MachineCodeInfo MCI;
+            ee->runJITOnFunction(rtn, &MCI);
+            ALOGD("LLVM JIT BENCH FUNCTION SIZE: %d bytes", MCI.size());
             void* funcptr = ee->getPointerToFunction(rtn);
-            ALOGD("LLVM COMPILER GOT POINTER");
+            if(debugprint) ALOGD("LLVM COMPILER GOT POINTER");
             info->codeAddress = funcptr;
             return true;
         }
@@ -2748,6 +2752,8 @@ bool dvmLLVMCompileTrace(JitTraceDescription *desc, int numMaxInsts,
             codePtr += width;
         }
     }
+
+    return false;
     //ALOGD("LLVM TRACE OP_ADD_INT: %d", opcodecount[144]);
     //ALOGD("LLVM FOR CURRENT TRACE:");
     for(int ops = 0; ops < 256; ops++)
@@ -3251,6 +3257,17 @@ bool dvmCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     /* Convert LIR into machine code. Loop for recoverable retries */
     do {
         dvmCompilerAssembleLIR(&cUnit, info);
+        std::string name = desc->method->name;
+        std::string pre = "Std";
+        std::string pre2 = "JIT";
+        if(name.find(pre)!=std::string::npos) {
+            ALOGD("BENCH STD JIT %s offset %d codesize: %d bytes",desc->method->name, currRun->info.frag.startOffset, cUnit.totalSize);
+        }
+
+         if(name.find(pre2)!=std::string::npos) {
+            ALOGD("BENCH LLVM JIT %s offset %d codesize: %d bytes",desc->method->name, currRun->info.frag.startOffset, cUnit.totalSize);
+        }
+
         cUnit.assemblerRetries++;
         if (cUnit.printMe && cUnit.assemblerStatus != kSuccess)
             ALOGD("Assembler abort #%d on %d",cUnit.assemblerRetries,
