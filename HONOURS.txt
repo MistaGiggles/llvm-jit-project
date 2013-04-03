@@ -1,0 +1,4 @@
+This directory is a subdirectory of the Android Open Source Project.
+It contains the code for Dalvik, which is the portion of Android that I was working with.
+
+
