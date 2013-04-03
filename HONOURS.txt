@@ -1,4 +1,6 @@
 This directory is a subdirectory of the Android Open Source Project.
 It contains the code for Dalvik, which is the portion of Android that I was working with.
 
-
+Main implementation can be found in:
+vm/compiler/codegren/arm/CodegenDriver.cpp
+vm/compiler/Frontend.cpp

@@ -4777,15 +4777,9 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     if(debugprint)
                     ALOGD("Done stub trace");
                 } else {
-                    //isCompile = false;
-                    success = dvmCompileTrace(desc, JIT_MAX_TRACE_LEN, &work->result,  work->bailPtr, 0 /* no hints */);
-
-                    isCompile = true;
-                    if(totime) {
-                            t2 = clock();
-                            float diff = (((float)t2 - (float)t1) / 1000000.0F ) * 1000;   
-                            ALOGD("LLVM BENCH JIT Trace %s at %d took %f time to compile", desc->method->name,(int)work->pc ,diff);
-                    }
+                    isCompile = false;
+                    success = false;
+                    
                 }
             } else 
             {
