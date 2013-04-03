@@ -4625,8 +4625,8 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
             if(work->kind==kWorkOrderTrace)
             {
                 std::string methodName1 = desc->method->name;
-                std::string myjitprefix1 = "JIT";
-                std::string myjitprefix2 = "Std";
+                std::string myjitprefix1 = "LLVM";
+                std::string myjitprefix2 = "JIT";
             // if(strcmp(desc->method->name, "addTwo")==0)// && work->pc==desc->method->insns)
                 if(methodName1.find(myjitprefix1)!=std::string::npos) {
                     //ALOGD("Was able to change worktype");
@@ -4635,7 +4635,7 @@ bool dvmCompilerDoWork(CompilerWorkOrder *work)
                     totime = true;
                 }
                  else {
-                    std::string dont = "Slow";
+                    std::string dont = "SLOW";
                     if(methodName1.find(dont)!=std::string::npos) {
                         return false;
                     }

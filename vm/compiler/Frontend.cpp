@@ -3258,8 +3258,8 @@ bool dvmCompileTrace(JitTraceDescription *desc, int numMaxInsts,
     do {
         dvmCompilerAssembleLIR(&cUnit, info);
         std::string name = desc->method->name;
-        std::string pre = "Std";
-        std::string pre2 = "JIT";
+        std::string pre = "JIT";
+        std::string pre2 = "LLVM";
         if(name.find(pre)!=std::string::npos) {
             ALOGD("BENCH STD JIT %s offset %d codesize: %d bytes",desc->method->name, currRun->info.frag.startOffset, cUnit.totalSize);
         }
