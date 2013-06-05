@@ -1,3 +1,10 @@
+
+
+Repository for LLVM-JIT honours project by Matthew Shepherd.
+
+
+
+
 This directory contains the Dalvik virtual machine and core class library,
 as well as related tools, libraries, and tests.
 
